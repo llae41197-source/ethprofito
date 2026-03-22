@@ -9,17 +9,14 @@ export default function HomePage() {
           <span className="eyebrow">Multi-asset trading command center</span>
           <h1>Build ethprofito.com around custody, markets, and operator control.</h1>
           <p>
-            This starter is designed as an admin-managed platform for crypto, stocks, and gold
-            products with user portfolios, internal ledgering, deposit workflows, live chart
-            embeds, and an admin back office. It should be reviewed for licensing, custody, KYC,
-            AML, and securities compliance before any public launch.
+            This starter is designed as a multi-asset platform for crypto, stocks, and gold with
+            user portfolios, internal ledgering, deposit workflows, and live chart embeds. It
+            should be reviewed for licensing, custody, KYC, AML, and securities compliance before
+            any public launch.
           </p>
           <div className="hero-actions">
             <Link href="/dashboard" className="btn">
               Open trader dashboard
-            </Link>
-            <Link href="/admin" className="btn-secondary">
-              Open admin controls
             </Link>
           </div>
         </div>
