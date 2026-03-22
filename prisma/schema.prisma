@@ -42,6 +42,24 @@ enum LedgerEntryType {
   RELEASE
 }
 
+enum DepositSubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BinaryOptionDirection {
+  CALL
+  PUT
+}
+
+enum BinaryOptionStatus {
+  OPEN
+  WON
+  LOST
+  CANCELLED
+}
+
 model User {
   id            String        @id @default(cuid())
   email         String        @unique
@@ -54,6 +72,8 @@ model User {
   updatedAt     DateTime      @updatedAt
   balances      Balance[]
   trades        Trade[]
+  binaryOptions BinaryOptionTrade[]
+  depositSubmissions DepositSubmission[]
   managedLogs   AuditLog[]    @relation("AuditActor")
   targetLogs    AuditLog[]    @relation("AuditTarget")
   ledgerEntries LedgerEntry[]
@@ -69,6 +89,8 @@ model Asset {
   updatedAt      DateTime        @updatedAt
   balances       Balance[]
   trades         Trade[]
+  binaryOptions  BinaryOptionTrade[]
+  depositSubmissions DepositSubmission[]
   addresses      DepositAddress[]
   ledgerEntries  LedgerEntry[]
 }
@@ -143,4 +165,48 @@ model AuditLog {
   user       User?    @relation("AuditTarget", fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([action, createdAt])
+}
+
+model DepositSubmission {
+  id              String                  @id @default(cuid())
+  userId          String
+  assetId         String
+  network         String
+  txHash          String?
+  amount          Decimal
+  screenshotName  String?
+  screenshotData  String?
+  note            String?
+  adminNote       String?
+  status          DepositSubmissionStatus @default(PENDING)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  reviewedAt      DateTime?
+  user            User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset           Asset                   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt])
+}
+
+model BinaryOptionTrade {
+  id             String                @id @default(cuid())
+  userId         String
+  assetId        String
+  marketSymbol   String
+  direction      BinaryOptionDirection
+  durationSeconds Int
+  payoutPercent  Int
+  stakeAmount    Decimal
+  openingPrice   Decimal
+  closingPrice   Decimal?
+  payoutAmount   Decimal?
+  status         BinaryOptionStatus    @default(OPEN)
+  expiresAt      DateTime
+  settledAt      DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset          Asset                 @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt])
 }

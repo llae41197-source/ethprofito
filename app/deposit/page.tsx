@@ -1,6 +1,13 @@
-import { depositAddresses } from "@/lib/data";
+import { DepositUploadForm } from "@/components/deposit-upload-form";
+import { getDepositPageSnapshot } from "@/lib/queries";
+import { requireUserSession } from "@/lib/session";
 
-export default function DepositPage() {
+export const dynamic = "force-dynamic";
+
+export default async function DepositPage() {
+  const session = await requireUserSession();
+  const data = await getDepositPageSnapshot(session.id);
+
   return (
     <main className="shell section">
       <div className="section-head">
@@ -11,7 +18,7 @@ export default function DepositPage() {
       </div>
 
       <div className="grid-3">
-        {depositAddresses.map((item) => (
+        {data.depositAddresses.map((item) => (
           <article key={item.symbol} className="panel">
             <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
               <div>
@@ -27,14 +34,73 @@ export default function DepositPage() {
       </div>
 
       <section className="section">
-        <article className="panel">
-          <p className="muted-label">Operational notes</p>
-          <p className="section-copy">
-            This page displays configured deposit addresses only. Production crediting should be
-            done through a deposit monitoring worker, network validation, transaction risk checks,
-            and manual approval logic before balances are released for trading or withdrawal.
-          </p>
-        </article>
+        <div className="admin-shell">
+          <DepositUploadForm
+            depositAddresses={data.depositAddresses.map((item) => ({
+              symbol: item.symbol,
+              chain: item.chain
+            }))}
+          />
+
+          <article className="table-shell">
+            <div className="section-head">
+              <div>
+                <span className="muted-label">Deposit review queue</span>
+                <h2 style={{ margin: "0.5rem 0 0" }}>Your submitted screenshots</h2>
+              </div>
+            </div>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Asset</th>
+                  <th>Amount</th>
+                  <th>Tx Hash</th>
+                  <th>Status</th>
+                  <th>Proof</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.submissions.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="muted">
+                      No deposit proofs submitted yet.
+                    </td>
+                  </tr>
+                ) : (
+                  data.submissions.map((submission) => (
+                    <tr key={submission.id}>
+                      <td>{submission.asset.symbol}</td>
+                      <td>{submission.amount.toString()}</td>
+                      <td className="muted">{submission.txHash ?? "Not provided"}</td>
+                      <td>
+                        <span
+                          className={`badge ${
+                            submission.status === "REJECTED"
+                              ? "danger"
+                              : submission.status === "PENDING"
+                                ? "warn"
+                                : ""
+                          }`}
+                        >
+                          {submission.status}
+                        </span>
+                      </td>
+                      <td>
+                        {submission.screenshotData ? (
+                          <a href={submission.screenshotData} target="_blank" rel="noreferrer">
+                            View proof
+                          </a>
+                        ) : (
+                          <span className="muted">No image</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </article>
+        </div>
       </section>
     </main>
   );

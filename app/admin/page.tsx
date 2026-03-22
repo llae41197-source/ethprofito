@@ -29,6 +29,14 @@ export default async function AdminPage() {
                 <p className="muted-label">Restricted users</p>
                 <p className="stat-value">{data.totals.restrictedUsers}</p>
               </div>
+              <div>
+                <p className="muted-label">Pending deposits</p>
+                <p className="stat-value">{data.totals.pendingDeposits}</p>
+              </div>
+              <div>
+                <p className="muted-label">Open binary options</p>
+                <p className="stat-value">{data.totals.openBinaryOptions}</p>
+              </div>
             </div>
           </article>
 
@@ -78,7 +86,11 @@ export default async function AdminPage() {
           </article>
         </section>
 
-        <AdminActions users={data.users} />
+        <AdminActions
+          users={data.users}
+          depositSubmissions={data.depositSubmissions}
+          binaryOptions={data.binaryOptions}
+        />
       </div>
     </main>
   );

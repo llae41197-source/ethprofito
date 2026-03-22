@@ -1,5 +1,6 @@
 import { getUserDashboardSnapshot } from "@/lib/queries";
 import { requireUserSession } from "@/lib/session";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,11 @@ export default async function DashboardPage() {
             Signed in as {data.user.name ?? data.user.email}. This view only loads the authenticated
             account, not platform-wide admin data.
           </p>
+          <div className="hero-actions" style={{ marginTop: "1rem" }}>
+            <Link href="/trade" className="btn">
+              Open binary options
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -109,6 +115,57 @@ export default async function DashboardPage() {
         <article className="table-shell">
           <div className="section-head">
             <div>
+              <span className="muted-label">Binary options</span>
+              <h2 style={{ margin: "0.5rem 0 0" }}>Recent option tickets</h2>
+            </div>
+          </div>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Direction</th>
+                <th>Duration</th>
+                <th>Payout</th>
+                <th>Stake</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.binaryOptions.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="muted">
+                    No binary option tickets yet.
+                  </td>
+                </tr>
+              ) : (
+                data.binaryOptions.map((option) => (
+                  <tr key={option.id}>
+                    <td>{option.asset.symbol}</td>
+                    <td>{option.direction}</td>
+                    <td>{option.durationSeconds}s</td>
+                    <td>{option.payoutPercent}%</td>
+                    <td>{option.stakeAmount.toString()}</td>
+                    <td>
+                      <span
+                        className={`badge ${
+                          option.status === "LOST" ? "danger" : option.status === "OPEN" ? "warn" : ""
+                        }`}
+                      >
+                        {option.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </article>
+      </section>
+
+      <section className="section">
+        <article className="table-shell">
+          <div className="section-head">
+            <div>
               <span className="muted-label">Funding networks</span>
               <h2 style={{ margin: "0.5rem 0 0" }}>Available deposit addresses</h2>
             </div>
@@ -122,7 +179,7 @@ export default async function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {data.deposits.map((deposit) => (
+              {data.depositAddresses.map((deposit) => (
                 <tr key={deposit.address}>
                   <td>{deposit.assetCode}</td>
                   <td>{deposit.network}</td>

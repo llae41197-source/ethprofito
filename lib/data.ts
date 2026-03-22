@@ -113,6 +113,10 @@ export const adminActions = [
   "Review trade tickets, fees, and PnL history",
   "Control market visibility and supported instruments"
 ] as const;
+
+export const binaryDurations = [30, 60, 90, 120, 300] as const;
+
+export const binaryPayoutPercents = [30, 40, 50, 60, 70] as const;
 type MarketCard = {
   symbol: string;
   name: string;

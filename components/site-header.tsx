@@ -6,7 +6,8 @@ export async function SiteHeader() {
   const links = [
     { href: "/", label: "Home" },
     { href: "/markets", label: "Markets" },
-    { href: "/deposit", label: "Deposit" }
+    { href: "/deposit", label: "Deposit" },
+    ...(session ? [{ href: "/trade", label: "Trade" }] : [])
   ];
 
   return (

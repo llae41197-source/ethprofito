@@ -1,6 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { depositAddresses, featuredMarkets, sampleAccounts } from "@/lib/data";
 
+function formatMoney(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 2
+  }).format(value);
+}
+
 async function hasUsersTable() {
   try {
     await prisma.user.count();
@@ -10,12 +18,114 @@ async function hasUsersTable() {
   }
 }
 
-function formatMoney(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2
-  }).format(value);
+export async function getUserDashboardSnapshot(userId: string) {
+  if (!(await hasUsersTable())) {
+    return {
+      user: {
+        name: "Demo Trader",
+        email: "trader@ethprofito.com",
+        kycStatus: "PENDING"
+      },
+      balances: [
+        { asset: { symbol: "BTC", name: "Bitcoin" }, amount: 1.8, lockedAmount: 0.25 },
+        { asset: { symbol: "ETH", name: "Ethereum" }, amount: 14.2, lockedAmount: 2.1 },
+        { asset: { symbol: "USDT", name: "Tether" }, amount: 2500, lockedAmount: 0 }
+      ],
+      trades: [],
+      binaryOptions: [],
+      depositAddresses: depositAddresses.map((item) => ({
+        assetCode: item.symbol,
+        network: item.chain,
+        address: item.address
+      })),
+      depositSubmissions: []
+    };
+  }
+
+  const [user, balances, trades, binaryOptions, depositAddressesDb, depositSubmissions] =
+    await Promise.all([
+      prisma.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: {
+          name: true,
+          email: true,
+          kycStatus: true
+        }
+      }),
+      prisma.balance.findMany({
+        where: { userId },
+        include: { asset: true },
+        orderBy: { asset: { symbol: "asc" } }
+      }),
+      prisma.trade.findMany({
+        where: { userId },
+        include: { asset: true },
+        take: 10,
+        orderBy: { createdAt: "desc" }
+      }),
+      prisma.binaryOptionTrade.findMany({
+        where: { userId },
+        include: { asset: true },
+        take: 12,
+        orderBy: { createdAt: "desc" }
+      }),
+      prisma.depositAddress.findMany({
+        where: { active: true },
+        orderBy: { assetCode: "asc" }
+      }),
+      prisma.depositSubmission.findMany({
+        where: { userId },
+        include: { asset: true },
+        orderBy: { createdAt: "desc" },
+        take: 12
+      })
+    ]);
+
+  return {
+    user,
+    balances: balances.map((balance) => ({
+      ...balance,
+      amount: Number(balance.amount),
+      lockedAmount: Number(balance.lockedAmount)
+    })),
+    trades,
+    binaryOptions,
+    depositAddresses: depositAddressesDb,
+    depositSubmissions
+  };
+}
+
+export async function getDepositPageSnapshot(userId: string) {
+  if (!(await hasUsersTable())) {
+    return {
+      depositAddresses,
+      submissions: []
+    };
+  }
+
+  const [addresses, submissions] = await Promise.all([
+    prisma.depositAddress.findMany({
+      where: { active: true },
+      orderBy: { assetCode: "asc" }
+    }),
+    prisma.depositSubmission.findMany({
+      where: { userId },
+      include: { asset: true },
+      orderBy: { createdAt: "desc" },
+      take: 15
+    })
+  ]);
+
+  return {
+    depositAddresses: addresses.map((item) => ({
+      chain: item.network,
+      symbol: item.assetCode,
+      address: item.address,
+      confirmations: item.network === "Bitcoin" ? "3 network confirmations" : "Manual review",
+      note: "Upload a transaction screenshot and await admin approval before credit is released."
+    })),
+    submissions
+  };
 }
 
 async function getFallbackAdminSnapshot() {
@@ -30,66 +140,14 @@ async function getFallbackAdminSnapshot() {
       balances: []
     })),
     auditLogs: [],
+    depositSubmissions: [],
+    binaryOptions: [],
     totals: {
       totalUsers: sampleAccounts.length,
-      restrictedUsers: 1
+      restrictedUsers: 1,
+      pendingDeposits: 0,
+      openBinaryOptions: 0
     }
-  };
-}
-
-export async function getUserDashboardSnapshot(userId: string) {
-  if (!(await hasUsersTable())) {
-    return {
-      user: {
-        name: "Demo Trader",
-        email: "trader@ethprofito.com",
-        kycStatus: "PENDING"
-      },
-      balances: [
-        { asset: { symbol: "BTC", name: "Bitcoin" }, amount: 1.8, lockedAmount: 0.25 },
-        { asset: { symbol: "ETH", name: "Ethereum" }, amount: 14.2, lockedAmount: 2.1 },
-        { asset: { symbol: "XAU", name: "Gold" }, amount: 55, lockedAmount: 10 }
-      ],
-      trades: [],
-      deposits: depositAddresses.map((item) => ({
-        assetCode: item.symbol,
-        network: item.chain,
-        address: item.address
-      }))
-    };
-  }
-
-  const [user, balances, trades, deposits] = await Promise.all([
-    prisma.user.findUniqueOrThrow({
-      where: { id: userId },
-      select: {
-        name: true,
-        email: true,
-        kycStatus: true
-      }
-    }),
-    prisma.balance.findMany({
-      where: { userId },
-      include: { asset: true },
-      orderBy: { asset: { symbol: "asc" } }
-    }),
-    prisma.trade.findMany({
-      where: { userId },
-      include: { asset: true },
-      take: 10,
-      orderBy: { createdAt: "desc" }
-    }),
-    prisma.depositAddress.findMany({
-      where: { active: true },
-      orderBy: { assetCode: "asc" }
-    })
-  ]);
-
-  return {
-    user,
-    balances,
-    trades,
-    deposits
   };
 }
 
@@ -98,7 +156,16 @@ export async function getAdminSnapshot() {
     return getFallbackAdminSnapshot();
   }
 
-  const [users, auditLogs, totalUsers, restrictedUsers] = await Promise.all([
+  const [
+    users,
+    auditLogs,
+    depositSubmissions,
+    binaryOptions,
+    totalUsers,
+    restrictedUsers,
+    pendingDeposits,
+    openBinaryOptions
+  ] = await Promise.all([
     prisma.user.findMany({
       orderBy: { createdAt: "desc" },
       select: {
@@ -112,6 +179,7 @@ export async function getAdminSnapshot() {
           select: {
             id: true,
             amount: true,
+            lockedAmount: true,
             asset: {
               select: {
                 symbol: true
@@ -130,8 +198,26 @@ export async function getAdminSnapshot() {
       orderBy: { createdAt: "desc" },
       take: 12
     }),
+    prisma.depositSubmission.findMany({
+      include: {
+        user: true,
+        asset: true
+      },
+      orderBy: { createdAt: "desc" },
+      take: 12
+    }),
+    prisma.binaryOptionTrade.findMany({
+      include: {
+        user: true,
+        asset: true
+      },
+      orderBy: { createdAt: "desc" },
+      take: 12
+    }),
     prisma.user.count(),
-    prisma.user.count({ where: { isRestricted: true } })
+    prisma.user.count({ where: { isRestricted: true } }),
+    prisma.depositSubmission.count({ where: { status: "PENDING" } }),
+    prisma.binaryOptionTrade.count({ where: { status: "OPEN" } })
   ]);
 
   return {
@@ -139,16 +225,39 @@ export async function getAdminSnapshot() {
       ...user,
       balances: user.balances.map((balance) => ({
         ...balance,
-        amount: Number(balance.amount)
+        amount: Number(balance.amount),
+        lockedAmount: Number(balance.lockedAmount)
       }))
     })),
     auditLogs,
+    depositSubmissions: depositSubmissions.map((submission) => ({
+      ...submission,
+      amount: Number(submission.amount)
+    })),
+    binaryOptions: binaryOptions.map((option) => ({
+      ...option,
+      stakeAmount: Number(option.stakeAmount),
+      openingPrice: Number(option.openingPrice),
+      closingPrice: option.closingPrice ? Number(option.closingPrice) : null,
+      payoutAmount: option.payoutAmount ? Number(option.payoutAmount) : null
+    })),
     totals: {
       totalUsers,
-      restrictedUsers
+      restrictedUsers,
+      pendingDeposits,
+      openBinaryOptions
     }
   };
 }
+
+type MarketCard = {
+  symbol: string;
+  name: string;
+  price: string;
+  change: string;
+  category: string;
+  source: string;
+};
 
 function toMarketCard(
   symbol: string,
@@ -157,7 +266,7 @@ function toMarketCard(
   change: number,
   category: string,
   source: string
-) {
+): MarketCard {
   const formattedChange = `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`;
 
   return {
@@ -171,7 +280,7 @@ function toMarketCard(
 }
 
 export async function getMarketCards() {
-  const results = [...featuredMarkets];
+  const results: MarketCard[] = [...featuredMarkets];
 
   try {
     const cryptoResponse = await fetch(
@@ -213,7 +322,7 @@ export async function getMarketCards() {
       );
     }
   } catch {
-    // Keep fallback cards when the live provider is unavailable.
+    // Keep fallback cards when live providers are unavailable.
   }
 
   const alphaVantageKey = process.env.ALPHA_VANTAGE_API_KEY;
@@ -287,7 +396,7 @@ export async function getMarketCards() {
       );
     }
   } catch {
-    // Keep previously fetched or fallback values.
+    // Keep fallback values.
   }
 
   return results;
