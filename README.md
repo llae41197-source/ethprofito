@@ -61,6 +61,9 @@ Demo seeded credentials after `prisma:seed`:
 - Trader email: `trader@ethprofito.com`
 - Trader password: `TraderPass123!` unless `SEED_TRADER_PASSWORD` is set
 
+For Vercel deployments, set `RUN_SEED_ON_BUILD="true"` temporarily if you want the deploy to
+create the demo admin and trader accounts in your hosted database.
+
 ## Pages
 
 - `/` public landing page
