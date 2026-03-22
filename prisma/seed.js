@@ -1,9 +1,16 @@
 const { PrismaClient } = require("@prisma/client");
+const { randomBytes, scryptSync } = require("node:crypto");
 
 const prisma = new PrismaClient();
 
+function hashPassword(password) {
+  const salt = randomBytes(16).toString("hex");
+  const derivedKey = scryptSync(password, salt, 64).toString("hex");
+  return `${salt}:${derivedKey}`;
+}
+
 async function main() {
-  const [btc, eth, sol, gold, apple] = await Promise.all([
+  const [btc, eth, sol, gold, apple, tesla] = await Promise.all([
     prisma.asset.upsert({
       where: { symbol: "BTC" },
       update: {},
@@ -28,27 +35,46 @@ async function main() {
       where: { symbol: "AAPL" },
       update: {},
       create: { symbol: "AAPL", name: "Apple", assetClass: "STOCK" }
+    }),
+    prisma.asset.upsert({
+      where: { symbol: "TSLA" },
+      update: {},
+      create: { symbol: "TSLA", name: "Tesla", assetClass: "STOCK" }
     })
   ]);
 
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD || "AdminPass123!";
+  const traderPassword = process.env.SEED_TRADER_PASSWORD || "TraderPass123!";
+
   const admin = await prisma.user.upsert({
     where: { email: "admin@ethprofito.com" },
-    update: { role: "ADMIN", name: "Platform Admin", kycStatus: "APPROVED" },
+    update: {
+      role: "ADMIN",
+      name: "Platform Admin",
+      kycStatus: "APPROVED",
+      passwordHash: hashPassword(adminPassword)
+    },
     create: {
       email: "admin@ethprofito.com",
       name: "Platform Admin",
       role: "ADMIN",
-      kycStatus: "APPROVED"
+      kycStatus: "APPROVED",
+      passwordHash: hashPassword(adminPassword)
     }
   });
 
   const trader = await prisma.user.upsert({
     where: { email: "trader@ethprofito.com" },
-    update: { name: "Demo Trader", kycStatus: "APPROVED" },
+    update: {
+      name: "Demo Trader",
+      kycStatus: "APPROVED",
+      passwordHash: hashPassword(traderPassword)
+    },
     create: {
       email: "trader@ethprofito.com",
       name: "Demo Trader",
-      kycStatus: "APPROVED"
+      kycStatus: "APPROVED",
+      passwordHash: hashPassword(traderPassword)
     }
   });
 
@@ -103,6 +129,10 @@ async function main() {
     })
   ]);
 
+  await prisma.trade.deleteMany({
+    where: { userId: trader.id }
+  });
+
   await prisma.trade.create({
     data: {
       userId: trader.id,
@@ -113,6 +143,20 @@ async function main() {
       entryPrice: 213.44,
       executionPrice: 214.04,
       feeAmount: 3.5,
+      status: "FILLED"
+    }
+  });
+
+  await prisma.trade.create({
+    data: {
+      userId: trader.id,
+      assetId: tesla.id,
+      marketSymbol: "NASDAQ:TSLA",
+      side: "SELL",
+      quantity: 5,
+      entryPrice: 196.88,
+      executionPrice: 197.1,
+      feeAmount: 1.1,
       status: "FILLED"
     }
   });

@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { adminActions, depositAddresses, platformStats } from "@/lib/data";
+import { getOptionalSession } from "@/lib/session";
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const session = await getOptionalSession();
+
   return (
     <main className="shell">
       <section className="hero">
@@ -15,8 +20,8 @@ export default function HomePage() {
             any public launch.
           </p>
           <div className="hero-actions">
-            <Link href="/dashboard" className="btn">
-              Open trader dashboard
+            <Link href={session ? "/dashboard" : "/login"} className="btn">
+              {session ? "Open trader dashboard" : "Login or create account"}
             </Link>
           </div>
         </div>

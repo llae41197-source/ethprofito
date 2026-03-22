@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
-import { getDashboardSnapshot } from "@/lib/queries";
+import { getAdminSnapshot } from "@/lib/queries";
+import { requireApiAdminSession } from "@/lib/session";
 
 export async function GET() {
-  const data = await getDashboardSnapshot();
+  const admin = await requireApiAdminSession();
+
+  if (!admin) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
+  const data = await getAdminSnapshot();
 
   return NextResponse.json({
-    users: data.users,
-    balanceTotal: data.balances._sum.amount ?? 0,
-    lockedTotal: data.balances._sum.lockedAmount ?? 0,
-    openTrades: data.trades.length,
-    depositAddresses: data.deposits
+    users: data.totals.totalUsers,
+    restrictedUsers: data.totals.restrictedUsers,
+    auditLogs: data.auditLogs.length
   });
 }

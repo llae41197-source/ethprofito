@@ -28,14 +28,56 @@ export const platformStats = [
   { label: "Execution Mode", value: "<120ms", hint: "Starter UX with real-time data hooks" }
 ] as const;
 
-export const featuredMarkets = [
-  { symbol: "BTCUSD", name: "Bitcoin", price: "$84,320", change: "+3.4%", category: "Crypto" },
-  { symbol: "ETHUSD", name: "Ethereum", price: "$4,180", change: "+1.9%", category: "Crypto" },
-  { symbol: "XAUUSD", name: "Gold Spot", price: "$2,488", change: "+0.6%", category: "Metals" },
-  { symbol: "NASDAQ:AAPL", name: "Apple", price: "$214.54", change: "+0.8%", category: "Stocks" },
-  { symbol: "NASDAQ:TSLA", name: "Tesla", price: "$197.32", change: "-0.9%", category: "Stocks" },
-  { symbol: "AMEX:SPY", name: "S&P 500 ETF", price: "$589.42", change: "+0.4%", category: "Index" }
-] as const;
+export const featuredMarkets: MarketCard[] = [
+  {
+    symbol: "BTCUSD",
+    name: "Bitcoin",
+    price: "$84,320",
+    change: "+3.4%",
+    category: "Crypto",
+    source: "Fallback"
+  },
+  {
+    symbol: "ETHUSD",
+    name: "Ethereum",
+    price: "$4,180",
+    change: "+1.9%",
+    category: "Crypto",
+    source: "Fallback"
+  },
+  {
+    symbol: "XAUUSD",
+    name: "Gold Spot",
+    price: "$2,488",
+    change: "+0.6%",
+    category: "Metals",
+    source: "Fallback"
+  },
+  {
+    symbol: "NASDAQ:AAPL",
+    name: "Apple",
+    price: "$214.54",
+    change: "+0.8%",
+    category: "Stocks",
+    source: "Fallback"
+  },
+  {
+    symbol: "NASDAQ:TSLA",
+    name: "Tesla",
+    price: "$197.32",
+    change: "-0.9%",
+    category: "Stocks",
+    source: "Fallback"
+  },
+  {
+    symbol: "SOLUSD",
+    name: "Solana",
+    price: "$162.12",
+    change: "+1.4%",
+    category: "Crypto",
+    source: "Fallback"
+  }
+];
 
 export const sampleAccounts = [
   {
@@ -71,3 +113,11 @@ export const adminActions = [
   "Review trade tickets, fees, and PnL history",
   "Control market visibility and supported instruments"
 ] as const;
+type MarketCard = {
+  symbol: string;
+  name: string;
+  price: string;
+  change: string;
+  category: string;
+  source: string;
+};

@@ -1,13 +1,14 @@
 import Link from "next/link";
+import { getOptionalSession } from "@/lib/session";
 
-const links = [
-  { href: "/", label: "Home" },
-  { href: "/markets", label: "Markets" },
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/deposit", label: "Deposit" }
-];
+export async function SiteHeader() {
+  const session = await getOptionalSession();
+  const links = [
+    { href: "/", label: "Home" },
+    { href: "/markets", label: "Markets" },
+    { href: "/deposit", label: "Deposit" }
+  ];
 
-export function SiteHeader() {
   return (
     <header className="topbar">
       <div className="shell topbar-inner">
@@ -21,6 +22,9 @@ export function SiteHeader() {
               {link.label}
             </Link>
           ))}
+          {session ? <Link href="/dashboard">Dashboard</Link> : <Link href="/login">Login</Link>}
+          {session?.role === "ADMIN" ? <Link href="/admin">Admin</Link> : null}
+          {session ? <Link href="/logout">Logout</Link> : null}
         </nav>
       </div>
     </header>

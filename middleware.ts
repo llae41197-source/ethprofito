@@ -1,43 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-
-function unauthorizedResponse() {
-  return new NextResponse("Authorization required", {
-    status: 401,
-    headers: {
-      "WWW-Authenticate": 'Basic realm="ethprofito admin"'
-    }
-  });
-}
+import { SESSION_COOKIE_NAME } from "@/lib/constants";
 
 export function middleware(request: NextRequest) {
-  if (!request.nextUrl.pathname.startsWith("/admin")) {
-    return NextResponse.next();
-  }
+  const { pathname } = request.nextUrl;
+  const hasSession = Boolean(request.cookies.get(SESSION_COOKIE_NAME)?.value);
 
-  const adminUsername = process.env.ADMIN_USERNAME;
-  const adminPassword = process.env.ADMIN_PASSWORD;
-
-  if (!adminUsername || !adminPassword) {
-    return unauthorizedResponse();
-  }
-
-  const authHeader = request.headers.get("authorization");
-
-  if (!authHeader?.startsWith("Basic ")) {
-    return unauthorizedResponse();
-  }
-
-  const base64Credentials = authHeader.slice(6);
-  const decoded = Buffer.from(base64Credentials, "base64").toString("utf8");
-  const [username, password] = decoded.split(":");
-
-  if (username !== adminUsername || password !== adminPassword) {
-    return unauthorizedResponse();
+  if ((pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) && !hasSession) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*"]
+  matcher: ["/admin/:path*", "/dashboard/:path*"]
 };

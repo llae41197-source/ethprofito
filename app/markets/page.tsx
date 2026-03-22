@@ -26,6 +26,7 @@ export default async function MarketsPage() {
                 <th>Category</th>
                 <th>Price</th>
                 <th>Move</th>
+                <th>Source</th>
               </tr>
             </thead>
             <tbody>
@@ -44,6 +45,7 @@ export default async function MarketsPage() {
                       {market.change}
                     </span>
                   </td>
+                  <td className="muted">{market.source ?? "Fallback"}</td>
                 </tr>
               ))}
             </tbody>

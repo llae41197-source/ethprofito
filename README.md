@@ -3,11 +3,11 @@
 Admin-managed trading platform starter for crypto, stocks, and gold. This project includes:
 
 - Next.js App Router frontend
+- Role-based login for users and admin operators
 - Trader dashboard and admin back office
 - Deposit wallet display for BTC, ETH, and SOL
 - Prisma schema for users, balances, trades, deposit addresses, ledger entries, and audit logs
-- Embedded TradingView widgets for live-style charting
-- Basic protection for `/admin` via environment-based credentials
+- Embedded TradingView widgets plus server-side market API fetchers
 
 ## Important
 
@@ -54,15 +54,21 @@ cmd /c npm.cmd run dev
 
 Open `http://localhost:3000`
 
-When you open `/admin`, use the credentials from `.env`.
+Demo seeded credentials after `prisma:seed`:
+
+- Admin email: `admin@ethprofito.com`
+- Admin password: `AdminPass123!` unless `SEED_ADMIN_PASSWORD` is set
+- Trader email: `trader@ethprofito.com`
+- Trader password: `TraderPass123!` unless `SEED_TRADER_PASSWORD` is set
 
 ## Pages
 
 - `/` public landing page
 - `/markets` market overview and live chart widgets
 - `/deposit` deposit wallet instructions
-- `/dashboard` portfolio and funding summary
-- `/admin` admin control room
+- `/login` user login and signup
+- `/dashboard` protected per-user portfolio and funding summary
+- `/admin` protected admin control room
 
 ## Database models
 
@@ -76,8 +82,7 @@ When you open `/admin`, use the credentials from `.env`.
 
 ## Suggested next steps
 
-- Replace basic auth with real login and role-based access control
-- Add authentication and role-based access control
+- Add MFA and password reset flows
 - Connect real market data providers and websocket streams
 - Add deposit monitoring workers for BTC, ETH, and SOL
 - Implement withdrawal reviews and risk checks

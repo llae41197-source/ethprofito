@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
-import { featuredMarkets } from "@/lib/data";
+import { getMarketCards } from "@/lib/queries";
 
 export async function GET() {
+  const markets = await getMarketCards();
+
   return NextResponse.json({
     updatedAt: new Date().toISOString(),
-    markets: featuredMarkets
+    markets
   });
 }
