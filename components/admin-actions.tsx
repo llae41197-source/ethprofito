@@ -96,6 +96,18 @@ export function AdminActions({
     });
   }, [search, users]);
 
+  const supportedAssets = useMemo(() => {
+    const symbols = new Set(["BTC", "ETH", "SOL", "USDT", "XAU"]);
+
+    users.forEach((user) => {
+      user.balances.forEach((balance) => {
+        symbols.add(balance.asset.symbol);
+      });
+    });
+
+    return Array.from(symbols).sort();
+  }, [users]);
+
   async function requestJson(url: string, body: Record<string, unknown>) {
     setBusy(true);
     setMessage(null);
@@ -210,7 +222,13 @@ export function AdminActions({
 
           <label className="field">
             <span>Asset symbol</span>
-            <input name="assetSymbol" placeholder="BTC" required />
+            <select name="assetSymbol" defaultValue="BTC" required>
+              {supportedAssets.map((symbol) => (
+                <option key={symbol} value={symbol}>
+                  {symbol}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className="field">
