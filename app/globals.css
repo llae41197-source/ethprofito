@@ -420,6 +420,43 @@ select {
   gap: 0.75rem;
 }
 
+.partners-panel {
+  padding: 1.5rem;
+}
+
+.partners-title {
+  margin: 0;
+  color: #f5d091;
+  font-size: 2rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.partners-copy {
+  margin: 0.35rem 0 1.25rem;
+  color: #d7dde6;
+}
+
+.partners-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+}
+
+.partner-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 4rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(22, 22, 20, 0.92);
+  color: #f4f4f5;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
 .field {
   display: grid;
   gap: 0.45rem;
@@ -522,6 +559,10 @@ select {
 
   .admin-grid-cards {
     grid-template-columns: 1fr;
+  }
+
+  .partners-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .section-head,

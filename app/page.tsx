@@ -5,6 +5,20 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const markets = await getMarketCards();
+  const partners = [
+    "BINANCE",
+    "Bitstamp",
+    "coinbase",
+    "Gate.io",
+    "Huobi",
+    "kraken",
+    "KUCOIN",
+    "OKEX",
+    "upbit",
+    "WazirX",
+    "Bitget",
+    "crypto.com"
+  ];
 
   return (
     <main className="shell section">
@@ -53,6 +67,20 @@ export default async function HomePage() {
           </div>
           <div className="widget-shell">
             <TradingViewWidget symbol="NASDAQ:AAPL" height={360} />
+          </div>
+        </div>
+      </section>
+
+      <section className="section" style={{ paddingTop: 0 }}>
+        <div className="panel partners-panel">
+          <p className="partners-title">Cooperation Platform</p>
+          <p className="partners-copy">Trusted by global industry leaders</p>
+          <div className="partners-grid">
+            {partners.map((partner) => (
+              <div key={partner} className="partner-chip">
+                {partner}
+              </div>
+            ))}
           </div>
         </div>
       </section>
