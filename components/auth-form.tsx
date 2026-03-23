@@ -46,13 +46,23 @@ export function AuthForm({ nextPath }: AuthFormProps) {
         return;
       }
 
+      const rawChainId = await provider.request({
+        method: "eth_chainId"
+      });
+      const chainId =
+        typeof rawChainId === "string"
+          ? Number.parseInt(rawChainId, 16)
+          : typeof rawChainId === "number"
+            ? rawChainId
+            : undefined;
+
       const challengeResponse = await fetch("/api/auth/wallet/challenge", {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ address })
+        body: JSON.stringify({ address, chainId })
       });
 
       const challengeResult = (await challengeResponse.json().catch(() => null)) as

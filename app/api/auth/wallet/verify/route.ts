@@ -11,7 +11,8 @@ import {
   normalizeWalletAddress,
   type WalletChallengePayload
 } from "@/lib/wallet-auth";
-import { isAddress, verifyMessage } from "viem";
+import { createPublicClient, http, isAddress, verifyMessage } from "viem";
+import { arbitrum, base, mainnet, optimism, polygon } from "viem/chains";
 
 function clearWalletChallenge(store: Awaited<ReturnType<typeof cookies>>) {
   store.set(WALLET_CHALLENGE_COOKIE_NAME, "", {
@@ -21,6 +22,58 @@ function clearWalletChallenge(store: Awaited<ReturnType<typeof cookies>>) {
     path: "/",
     maxAge: 0
   });
+}
+
+const chainMap = new Map<number, (typeof mainnet | typeof base | typeof optimism | typeof arbitrum | typeof polygon)>(
+  [mainnet, base, optimism, arbitrum, polygon].map((chain) => [chain.id, chain])
+);
+
+async function verifyWalletSignature(
+  address: `0x${string}`,
+  message: string,
+  signature: `0x${string}`,
+  chainId?: number
+) {
+  const localVerified = await verifyMessage({
+    address,
+    message,
+    signature
+  }).catch(() => false);
+
+  if (localVerified) {
+    return true;
+  }
+
+  const preferredChains = [chainId, base.id, mainnet.id, optimism.id, arbitrum.id, polygon.id].filter(
+    (value, index, values): value is number => Number.isFinite(value) && values.indexOf(value) === index
+  );
+
+  for (const supportedChainId of preferredChains) {
+    const chain = chainMap.get(supportedChainId);
+
+    if (!chain) {
+      continue;
+    }
+
+    const client = createPublicClient({
+      chain,
+      transport: http()
+    });
+
+    const verified = await client
+      .verifyMessage({
+        address,
+        message,
+        signature
+      })
+      .catch(() => false);
+
+    if (verified) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export async function POST(request: Request) {
@@ -59,11 +112,12 @@ export async function POST(request: Request) {
   }
 
   const message = createWalletMessage(challenge);
-  const verified = await verifyMessage({
-    address,
+  const verified = await verifyWalletSignature(
+    address as `0x${string}`,
     message,
-    signature: signature as `0x${string}`
-  }).catch(() => false);
+    signature as `0x${string}`,
+    challenge.chainId
+  );
 
   if (!verified) {
     clearWalletChallenge(store);

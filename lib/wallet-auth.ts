@@ -6,6 +6,7 @@ const CHALLENGE_TTL_MS = 1000 * 60 * 10;
 
 export type WalletChallengePayload = {
   address: string;
+  chainId?: number;
   nonce: string;
   issuedAt: string;
 };
@@ -14,9 +15,10 @@ export function normalizeWalletAddress(address: string) {
   return getAddress(address);
 }
 
-export function createWalletChallenge(address: string): WalletChallengePayload {
+export function createWalletChallenge(address: string, chainId?: number): WalletChallengePayload {
   return {
     address: normalizeWalletAddress(address),
+    chainId,
     nonce: randomBytes(16).toString("hex"),
     issuedAt: new Date().toISOString()
   };
@@ -28,9 +30,12 @@ export function createWalletMessage(payload: WalletChallengePayload) {
     "",
     "Sign this message to authenticate with your wallet.",
     `Address: ${payload.address}`,
+    payload.chainId ? `Chain ID: ${payload.chainId}` : null,
     `Nonce: ${payload.nonce}`,
     `Issued At: ${payload.issuedAt}`
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 export function isExpiredChallenge(payload: WalletChallengePayload) {

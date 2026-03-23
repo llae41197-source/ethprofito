@@ -5,14 +5,18 @@ import { WALLET_CHALLENGE_COOKIE_NAME } from "@/lib/constants";
 import { createWalletChallenge, createWalletMessage, normalizeWalletAddress } from "@/lib/wallet-auth";
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => null)) as { address?: string } | null;
+  const body = (await request.json().catch(() => null)) as { address?: string; chainId?: number } | null;
   const rawAddress = body?.address?.trim();
+  const chainId = Number(body?.chainId);
 
   if (!rawAddress || !isAddress(rawAddress)) {
     return NextResponse.json({ error: "A valid wallet address is required." }, { status: 400 });
   }
 
-  const payload = createWalletChallenge(normalizeWalletAddress(rawAddress));
+  const payload = createWalletChallenge(
+    normalizeWalletAddress(rawAddress),
+    Number.isFinite(chainId) && chainId > 0 ? chainId : undefined
+  );
   const store = await cookies();
 
   store.set(
