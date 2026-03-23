@@ -113,6 +113,7 @@ export async function getOptionalSession() {
       id: true,
       email: true,
       name: true,
+      walletAddress: true,
       role: true,
       isRestricted: true,
       kycStatus: true

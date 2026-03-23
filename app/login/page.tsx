@@ -26,7 +26,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <h1 className="section-title">Sign in to view portfolios, balances, and orders.</h1>
           <p className="section-copy">
             Users can register and access only their own dashboard. Admin accounts are elevated by
-            role inside the database and are redirected to the operator console after login.
+            role inside the database and are redirected to the operator console after login. Users
+            can also sign in with a browser wallet like MetaMask or other compatible injected EVM
+            wallets.
           </p>
         </section>
 

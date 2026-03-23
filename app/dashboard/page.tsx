@@ -18,6 +18,11 @@ export default async function DashboardPage() {
             Signed in as {data.user.name ?? data.user.email}. This view only loads the authenticated
             account, not platform-wide admin data.
           </p>
+          {data.user.walletAddress ? (
+            <p className="muted" style={{ marginTop: "0.75rem" }}>
+              Connected wallet: {data.user.walletAddress}
+            </p>
+          ) : null}
           <div className="hero-actions" style={{ marginTop: "1rem" }}>
             <Link href="/trade" className="btn">
               Open binary options

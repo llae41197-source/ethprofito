@@ -24,6 +24,7 @@ export async function getUserDashboardSnapshot(userId: string) {
       user: {
         name: "Demo Trader",
         email: "trader@ethprofito.com",
+        walletAddress: null,
         kycStatus: "PENDING"
       },
       balances: [
@@ -49,6 +50,7 @@ export async function getUserDashboardSnapshot(userId: string) {
         select: {
           name: true,
           email: true,
+          walletAddress: true,
           kycStatus: true
         }
       }),
