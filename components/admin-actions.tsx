@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type AdminUser = {
   id: string;
@@ -26,6 +26,7 @@ type DepositSubmission = {
   status: string;
   adminNote: string | null;
   screenshotData: string | null;
+  createdAt?: string | Date;
   user: {
     email: string;
     name: string | null;
@@ -52,25 +53,27 @@ type BinaryOption = {
   };
 };
 
+type WithdrawalRequest = {
+  id: string;
+  amount: number | string;
+  destination: string;
+  network: string;
+  status: string;
+  adminNote: string | null;
+  user: {
+    email: string;
+    name: string | null;
+  };
+  asset: {
+    symbol: string;
+  };
+};
+
 type AdminActionsProps = {
   users: AdminUser[];
   depositSubmissions: DepositSubmission[];
   binaryOptions: BinaryOption[];
-  withdrawalRequests: Array<{
-    id: string;
-    amount: number | string;
-    destination: string;
-    network: string;
-    status: string;
-    adminNote: string | null;
-    user: {
-      email: string;
-      name: string | null;
-    };
-    asset: {
-      symbol: string;
-    };
-  }>;
+  withdrawalRequests: WithdrawalRequest[];
 };
 
 export function AdminActions({
@@ -83,30 +86,25 @@ export function AdminActions({
   const [busy, setBusy] = useState(false);
   const [search, setSearch] = useState("");
 
+  const supportedAssets = useMemo(() => {
+    const symbols = new Set(["BTC", "ETH", "SOL", "USDT", "XAU"]);
+    users.forEach((user) => {
+      user.balances.forEach((balance) => symbols.add(balance.asset.symbol));
+    });
+    return Array.from(symbols).sort();
+  }, [users]);
+
   const visibleUsers = useMemo(() => {
     const query = search.trim().toLowerCase();
-
     if (!query) {
       return users;
     }
 
     return users.filter((user) => {
-      const haystack = `${user.name ?? ""} ${user.email} ${user.role}`.toLowerCase();
-      return haystack.includes(query);
+      const text = `${user.name ?? ""} ${user.email} ${user.role} ${user.kycStatus}`.toLowerCase();
+      return text.includes(query);
     });
   }, [search, users]);
-
-  const supportedAssets = useMemo(() => {
-    const symbols = new Set(["BTC", "ETH", "SOL", "USDT", "XAU"]);
-
-    users.forEach((user) => {
-      user.balances.forEach((balance) => {
-        symbols.add(balance.asset.symbol);
-      });
-    });
-
-    return Array.from(symbols).sort();
-  }, [users]);
 
   async function requestJson(url: string, body: Record<string, unknown>) {
     setBusy(true);
@@ -131,28 +129,24 @@ export function AdminActions({
     return true;
   }
 
-  async function submitUserStatus(event: FormEvent<HTMLFormElement>, userId: string) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
+  async function setUserState(userId: string, restricted: boolean, kycStatus: string) {
     const ok = await requestJson(`/api/admin/users/${userId}/status`, {
-      restricted: form.get("restricted") === "true",
-      kycStatus: form.get("kycStatus")
+      restricted,
+      kycStatus
     });
 
     if (ok) {
-      setMessage("User status updated.");
+      setMessage("User updated.");
       window.location.reload();
     }
   }
 
-  async function submitBalanceAdjustment(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
+  async function recordAdjustment(formData: FormData) {
     const ok = await requestJson("/api/admin/balances/adjust", {
-      userId: form.get("userId"),
-      assetSymbol: form.get("assetSymbol"),
-      amount: Number(form.get("amount")),
-      note: form.get("note")
+      userId: formData.get("userId"),
+      assetSymbol: formData.get("assetSymbol"),
+      amount: Number(formData.get("amount")),
+      note: formData.get("note")
     });
 
     if (ok) {
@@ -161,83 +155,85 @@ export function AdminActions({
     }
   }
 
-  async function reviewDeposit(event: FormEvent<HTMLFormElement>, depositId: string) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
+  async function reviewDeposit(depositId: string, status: "APPROVED" | "REJECTED") {
     const ok = await requestJson(`/api/admin/deposits/${depositId}/review`, {
-      status: form.get("status"),
-      adminNote: form.get("adminNote")
+      status,
+      adminNote: `Admin marked deposit as ${status.toLowerCase()}.`
     });
 
     if (ok) {
-      setMessage("Deposit review saved.");
+      setMessage(`Deposit ${status.toLowerCase()}.`);
       window.location.reload();
     }
   }
 
-  async function settleBinaryOption(event: FormEvent<HTMLFormElement>, optionId: string) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const ok = await requestJson(`/api/admin/binary-options/${optionId}/settle`, {
-      outcome: form.get("outcome"),
-      closingPrice: Number(form.get("closingPrice")),
-      adminNote: form.get("adminNote")
-    });
-
-    if (ok) {
-      setMessage("Binary option settled.");
-      window.location.reload();
-    }
-  }
-
-  async function reviewWithdrawal(event: FormEvent<HTMLFormElement>, requestId: string) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
+  async function reviewWithdrawal(requestId: string, status: "APPROVED" | "REJECTED") {
     const ok = await requestJson(`/api/admin/withdrawals/${requestId}/review`, {
-      status: form.get("status"),
-      adminNote: form.get("adminNote")
+      status,
+      adminNote: `Admin marked withdrawal as ${status.toLowerCase()}.`
     });
 
     if (ok) {
-      setMessage("Withdrawal review saved.");
+      setMessage(`Withdrawal ${status.toLowerCase()}.`);
+      window.location.reload();
+    }
+  }
+
+  async function settleOption(optionId: string, outcome: "WON" | "LOST" | "CANCELLED", openingPrice: number | string) {
+    const ok = await requestJson(`/api/admin/binary-options/${optionId}/settle`, {
+      outcome,
+      closingPrice: Number(openingPrice),
+      adminNote: `Admin settled option as ${outcome.toLowerCase()}.`
+    });
+
+    if (ok) {
+      setMessage(`Binary option settled as ${outcome.toLowerCase()}.`);
       window.location.reload();
     }
   }
 
   return (
-    <div className="admin-actions-shell stack">
+    <div className="stack">
       <article className="panel">
-        <p className="muted-label">Admin-only balance controls</p>
-        <form className="admin-form" onSubmit={submitBalanceAdjustment}>
-          <label className="field">
-            <span>User</span>
-            <select name="userId" required>
-              {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.name ?? user.email}
-                </option>
-              ))}
-            </select>
-          </label>
+        <p className="muted-label">Manual balance adjustment</p>
+        <form
+          className="admin-form"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            await recordAdjustment(new FormData(event.currentTarget));
+          }}
+        >
+          <div className="grid-3">
+            <label className="field">
+              <span>User</span>
+              <select name="userId" required>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name ?? user.email}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Asset</span>
+              <select name="assetSymbol" defaultValue="USDT" required>
+                {supportedAssets.map((symbol) => (
+                  <option key={symbol} value={symbol}>
+                    {symbol}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Amount</span>
+              <input name="amount" type="number" step="0.0001" required />
+            </label>
+          </div>
 
           <label className="field">
-            <span>Asset symbol</span>
-            <select name="assetSymbol" defaultValue="BTC" required>
-              {supportedAssets.map((symbol) => (
-                <option key={symbol} value={symbol}>
-                  {symbol}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="field">
-            <span>Adjustment amount</span>
-            <input name="amount" type="number" step="0.0001" required />
-          </label>
-
-          <label className="field">
-            <span>Reason / audit note</span>
+            <span>Reason</span>
             <textarea name="note" required />
           </label>
 
@@ -248,187 +244,231 @@ export function AdminActions({
       </article>
 
       <article className="panel">
-        <p className="muted-label">User permissions</p>
+        <div className="section-head">
+          <div>
+            <p className="muted-label">Users</p>
+          </div>
+        </div>
         <label className="field" style={{ marginBottom: "1rem" }}>
-          <span>Search users</span>
+          <span>Search</span>
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Name, email, or role"
           />
         </label>
-        <div className="admin-grid">
+        <div className="admin-grid-cards">
           {visibleUsers.map((user) => (
-            <div key={user.id} className="admin-user-card">
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
+            <article key={user.id} className="admin-detail-card">
+              <div className="admin-card-head">
                 <div>
                   <strong>{user.name ?? user.email}</strong>
                   <div className="muted small">{user.email}</div>
                 </div>
                 <span className={`badge ${user.isRestricted ? "danger" : ""}`}>{user.role}</span>
               </div>
-
-              <p className="muted small" style={{ marginBottom: "0.5rem" }}>
-                Balances:{" "}
-                {user.balances.length > 0
-                  ? user.balances
-                      .map(
-                        (balance) =>
-                          `${balance.asset.symbol} ${Number(balance.amount).toFixed(4)} / locked ${Number(balance.lockedAmount).toFixed(4)}`
-                      )
-                      .join(", ")
-                  : "No balances"}
-              </p>
-
-              <form className="admin-form" onSubmit={(event) => submitUserStatus(event, user.id)}>
-                <label className="field">
-                  <span>Restriction</span>
-                  <select name="restricted" defaultValue={user.isRestricted ? "true" : "false"}>
-                    <option value="false">Active</option>
-                    <option value="true">Restricted</option>
-                  </select>
-                </label>
-
-                <label className="field">
-                  <span>KYC status</span>
-                  <select name="kycStatus" defaultValue={user.kycStatus}>
-                    <option value="PENDING">Pending</option>
-                    <option value="APPROVED">Approved</option>
-                    <option value="REVIEW">Review</option>
-                    <option value="REJECTED">Rejected</option>
-                  </select>
-                </label>
-
-                <button type="submit" className="btn-secondary" disabled={busy}>
-                  Save user controls
+              <div className="detail-list">
+                <div><span className="muted small">KYC</span><strong>{user.kycStatus}</strong></div>
+                <div><span className="muted small">Restriction</span><strong>{user.isRestricted ? "Restricted" : "Active"}</strong></div>
+                <div>
+                  <span className="muted small">Balances</span>
+                  <strong>
+                    {user.balances.length > 0
+                      ? user.balances
+                          .map((balance) => `${balance.asset.symbol} ${Number(balance.amount).toFixed(2)}`)
+                          .join(", ")
+                      : "No balances"}
+                  </strong>
+                </div>
+              </div>
+              <div className="action-row">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  disabled={busy}
+                  onClick={() => setUserState(user.id, false, "APPROVED")}
+                >
+                  Approved
                 </button>
-              </form>
-            </div>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  disabled={busy}
+                  onClick={() => setUserState(user.id, false, "REJECTED")}
+                >
+                  Rejected
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  disabled={busy}
+                  onClick={() => setUserState(user.id, true, user.kycStatus)}
+                >
+                  Restricted
+                </button>
+              </div>
+            </article>
           ))}
         </div>
       </article>
 
       <article className="panel">
-        <p className="muted-label">Pending deposit screenshot reviews</p>
-        <div className="admin-grid">
+        <p className="muted-label">Deposit requests</p>
+        <div className="admin-grid-cards">
           {depositSubmissions.length === 0 ? (
             <p className="muted">No deposit submissions found.</p>
           ) : (
             depositSubmissions.map((submission) => (
-              <div key={submission.id} className="admin-user-card">
-                <strong>{submission.user.name ?? submission.user.email}</strong>
-                <p className="muted small">
-                  {submission.asset.symbol} {submission.amount.toString()} | {submission.txHash ?? "No tx hash"}
-                </p>
-                {submission.screenshotData ? (
-                  <a href={submission.screenshotData} target="_blank" rel="noreferrer">
-                    Open screenshot proof
-                  </a>
-                ) : (
-                  <p className="muted small">No screenshot attached.</p>
-                )}
-
-                <form className="admin-form" onSubmit={(event) => reviewDeposit(event, submission.id)}>
-                  <label className="field">
-                    <span>Status</span>
-                    <select name="status" defaultValue={submission.status}>
-                      <option value="APPROVED">Approve</option>
-                      <option value="REJECTED">Reject</option>
-                    </select>
-                  </label>
-
-                  <label className="field">
-                    <span>Admin note</span>
-                    <textarea name="adminNote" defaultValue={submission.adminNote ?? ""} />
-                  </label>
-
-                  <button type="submit" className="btn-secondary" disabled={busy || submission.status !== "PENDING"}>
-                    {submission.status === "PENDING" ? "Save deposit review" : `Already ${submission.status}`}
+              <article key={submission.id} className="admin-detail-card">
+                <div className="admin-card-head">
+                  <div>
+                    <strong>{submission.user.name ?? submission.user.email}</strong>
+                    <div className="muted small">{submission.user.email}</div>
+                  </div>
+                  <span className={`badge ${submission.status === "REJECTED" ? "danger" : submission.status === "PENDING" ? "warn" : ""}`}>
+                    {submission.status}
+                  </span>
+                </div>
+                <div className="detail-list">
+                  <div><span className="muted small">Asset</span><strong>{submission.asset.symbol}</strong></div>
+                  <div><span className="muted small">Amount</span><strong>{submission.amount.toString()}</strong></div>
+                  <div><span className="muted small">Tx Hash</span><strong>{submission.txHash ?? "Not provided"}</strong></div>
+                  <div>
+                    <span className="muted small">Screenshot</span>
+                    <strong>
+                      {submission.screenshotData ? (
+                        <a href={submission.screenshotData} target="_blank" rel="noreferrer">
+                          Open proof
+                        </a>
+                      ) : (
+                        "No image"
+                      )}
+                    </strong>
+                  </div>
+                </div>
+                <div className="action-row">
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={busy || submission.status !== "PENDING"}
+                    onClick={() => reviewDeposit(submission.id, "APPROVED")}
+                  >
+                    Approved
                   </button>
-                </form>
-              </div>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={busy || submission.status !== "PENDING"}
+                    onClick={() => reviewDeposit(submission.id, "REJECTED")}
+                  >
+                    Rejected
+                  </button>
+                </div>
+              </article>
             ))
           )}
         </div>
       </article>
 
       <article className="panel">
-        <p className="muted-label">Withdrawal review queue</p>
-        <div className="admin-grid">
+        <p className="muted-label">Withdrawal requests</p>
+        <div className="admin-grid-cards">
           {withdrawalRequests.length === 0 ? (
             <p className="muted">No withdrawal requests found.</p>
           ) : (
             withdrawalRequests.map((request) => (
-              <div key={request.id} className="admin-user-card">
-                <strong>{request.user.name ?? request.user.email}</strong>
-                <p className="muted small">
-                  {request.asset.symbol} {request.amount.toString()} via {request.network}
-                </p>
-                <p className="muted small">{request.destination}</p>
-
-                <form className="admin-form" onSubmit={(event) => reviewWithdrawal(event, request.id)}>
-                  <label className="field">
-                    <span>Status</span>
-                    <select name="status" defaultValue={request.status}>
-                      <option value="APPROVED">Approve</option>
-                      <option value="REJECTED">Reject / return funds</option>
-                    </select>
-                  </label>
-
-                  <label className="field">
-                    <span>Admin note</span>
-                    <textarea name="adminNote" defaultValue={request.adminNote ?? ""} />
-                  </label>
-
-                  <button type="submit" className="btn-secondary" disabled={busy || request.status !== "PENDING"}>
-                    {request.status === "PENDING" ? "Save withdrawal review" : `Already ${request.status}`}
+              <article key={request.id} className="admin-detail-card">
+                <div className="admin-card-head">
+                  <div>
+                    <strong>{request.user.name ?? request.user.email}</strong>
+                    <div className="muted small">{request.user.email}</div>
+                  </div>
+                  <span className={`badge ${request.status === "REJECTED" ? "danger" : request.status === "PENDING" ? "warn" : ""}`}>
+                    {request.status}
+                  </span>
+                </div>
+                <div className="detail-list">
+                  <div><span className="muted small">Asset</span><strong>{request.asset.symbol}</strong></div>
+                  <div><span className="muted small">Amount</span><strong>{request.amount.toString()}</strong></div>
+                  <div><span className="muted small">Network</span><strong>{request.network}</strong></div>
+                  <div><span className="muted small">Destination</span><strong>{request.destination}</strong></div>
+                </div>
+                <div className="action-row">
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={busy || request.status !== "PENDING"}
+                    onClick={() => reviewWithdrawal(request.id, "APPROVED")}
+                  >
+                    Approved
                   </button>
-                </form>
-              </div>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={busy || request.status !== "PENDING"}
+                    onClick={() => reviewWithdrawal(request.id, "REJECTED")}
+                  >
+                    Rejected
+                  </button>
+                </div>
+              </article>
             ))
           )}
         </div>
       </article>
 
       <article className="panel">
-        <p className="muted-label">Binary option settlement desk</p>
-        <div className="admin-grid">
+        <p className="muted-label">Binary options</p>
+        <div className="admin-grid-cards">
           {binaryOptions.length === 0 ? (
             <p className="muted">No binary option tickets found.</p>
           ) : (
             binaryOptions.map((option) => (
-              <div key={option.id} className="admin-user-card">
-                <strong>{option.user.name ?? option.user.email}</strong>
-                <p className="muted small">
-                  {option.asset.symbol} {option.direction} {option.durationSeconds}s @ {option.payoutPercent}% | stake{" "}
-                  {option.stakeAmount.toString()} | open {option.openingPrice.toString()}
-                </p>
-
-                <form className="admin-form" onSubmit={(event) => settleBinaryOption(event, option.id)}>
-                  <label className="field">
-                    <span>Outcome</span>
-                    <select name="outcome" defaultValue="WON">
-                      <option value="WON">Won</option>
-                      <option value="LOST">Lost</option>
-                      <option value="CANCELLED">Cancelled / refund</option>
-                    </select>
-                  </label>
-
-                  <label className="field">
-                    <span>Closing price</span>
-                    <input name="closingPrice" type="number" step="0.0001" required />
-                  </label>
-
-                  <label className="field">
-                    <span>Admin note</span>
-                    <textarea name="adminNote" />
-                  </label>
-
-                  <button type="submit" className="btn-secondary" disabled={busy || option.status !== "OPEN"}>
-                    {option.status === "OPEN" ? "Settle option" : `Already ${option.status}`}
+              <article key={option.id} className="admin-detail-card">
+                <div className="admin-card-head">
+                  <div>
+                    <strong>{option.user.name ?? option.user.email}</strong>
+                    <div className="muted small">{option.user.email}</div>
+                  </div>
+                  <span className={`badge ${option.status === "LOST" ? "danger" : option.status === "OPEN" ? "warn" : ""}`}>
+                    {option.status}
+                  </span>
+                </div>
+                <div className="detail-list">
+                  <div><span className="muted small">Asset</span><strong>{option.asset.symbol}</strong></div>
+                  <div><span className="muted small">Direction</span><strong>{option.direction}</strong></div>
+                  <div><span className="muted small">Duration</span><strong>{option.durationSeconds}s</strong></div>
+                  <div><span className="muted small">Payout</span><strong>{option.payoutPercent}%</strong></div>
+                  <div><span className="muted small">Capital</span><strong>{option.stakeAmount.toString()} USDT</strong></div>
+                  <div><span className="muted small">Opening price</span><strong>{option.openingPrice.toString()}</strong></div>
+                </div>
+                <div className="action-row">
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={busy || option.status !== "OPEN"}
+                    onClick={() => settleOption(option.id, "WON", option.openingPrice)}
+                  >
+                    Approved
                   </button>
-                </form>
-              </div>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={busy || option.status !== "OPEN"}
+                    onClick={() => settleOption(option.id, "LOST", option.openingPrice)}
+                  >
+                    Rejected
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={busy || option.status !== "OPEN"}
+                    onClick={() => settleOption(option.id, "CANCELLED", option.openingPrice)}
+                  >
+                    Restricted
+                  </button>
+                </div>
+              </article>
             ))
           )}
         </div>
