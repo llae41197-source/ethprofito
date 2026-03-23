@@ -24,12 +24,6 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <section>
           <span className="kicker">Secure access</span>
           <h1 className="section-title">Sign in to view balances, wallet activity, and trades.</h1>
-          <p className="section-copy">
-            Users can register and access only their own wallet and trading area. Admin accounts are elevated by
-            role inside the database and are redirected to the operator console after login. Users
-            can also sign in with a browser wallet like MetaMask or other compatible injected EVM
-            wallets.
-          </p>
         </section>
 
         <AuthForm nextPath={params.next} />
