@@ -22,12 +22,15 @@ type AdminUser = {
 type DepositSubmission = {
   id: string;
   amount: number | string;
+  network: string;
   txHash: string | null;
+  note: string | null;
   status: string;
   adminNote: string | null;
   screenshotData: string | null;
   createdAt?: string | Date;
   user: {
+    id: string;
     email: string;
     name: string | null;
   };
@@ -58,9 +61,12 @@ type WithdrawalRequest = {
   amount: number | string;
   destination: string;
   network: string;
+  note: string | null;
   status: string;
   adminNote: string | null;
+  createdAt?: string | Date;
   user: {
+    id: string;
     email: string;
     name: string | null;
   };
@@ -105,6 +111,19 @@ export function AdminActions({
       return text.includes(query);
     });
   }, [search, users]);
+
+  function formatDateTime(value?: string | Date) {
+    if (!value) {
+      return "Not available";
+    }
+
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit"
+    }).format(new Date(value));
+  }
 
   async function requestJson(url: string, body: Record<string, unknown>) {
     setBusy(true);
@@ -314,105 +333,182 @@ export function AdminActions({
 
       <article className="panel">
         <p className="muted-label">Deposit requests</p>
-        <div className="admin-grid-cards">
+        <div className="table-shell" style={{ marginTop: "1rem" }}>
           {depositSubmissions.length === 0 ? (
             <p className="muted">No deposit submissions found.</p>
           ) : (
-            depositSubmissions.map((submission) => (
-              <article key={submission.id} className="admin-detail-card">
-                <div className="admin-card-head">
-                  <div>
-                    <strong>{submission.user.name ?? submission.user.email}</strong>
-                    <div className="muted small">{submission.user.email}</div>
-                  </div>
-                  <span className={`badge ${submission.status === "REJECTED" ? "danger" : submission.status === "PENDING" ? "warn" : ""}`}>
-                    {submission.status}
-                  </span>
-                </div>
-                <div className="detail-list">
-                  <div><span className="muted small">Asset</span><strong>{submission.asset.symbol}</strong></div>
-                  <div><span className="muted small">Amount</span><strong>{submission.amount.toString()}</strong></div>
-                  <div><span className="muted small">Tx Hash</span><strong>{submission.txHash ?? "Not provided"}</strong></div>
-                  <div>
-                    <span className="muted small">Screenshot</span>
-                    <strong>
+            <table className="table admin-request-table">
+              <thead>
+                <tr>
+                  <th>User / Time</th>
+                  <th>Asset / Amount</th>
+                  <th>Network / Tx</th>
+                  <th>Notes</th>
+                  <th>Proof</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {depositSubmissions.map((submission) => (
+                  <tr key={submission.id}>
+                    <td>
+                      <strong>{submission.user.name ?? submission.user.email}</strong>
+                      <div className="muted small">{submission.user.email}</div>
+                      <div className="muted small">{formatDateTime(submission.createdAt)}</div>
+                    </td>
+                    <td>
+                      <strong>{submission.asset.symbol}</strong>
+                      <div className="muted small">{submission.amount.toString()}</div>
+                    </td>
+                    <td>
+                      <strong>{submission.network}</strong>
+                      <div className="muted small">{submission.txHash ?? "No tx hash"}</div>
+                    </td>
+                    <td>
+                      <div className="muted small">{submission.note ?? "No user note"}</div>
+                      <div className="muted small">{submission.adminNote ?? "No admin note"}</div>
+                    </td>
+                    <td>
                       {submission.screenshotData ? (
                         <a href={submission.screenshotData} target="_blank" rel="noreferrer">
                           Open proof
                         </a>
                       ) : (
-                        "No image"
+                        <span className="muted">No image</span>
                       )}
-                    </strong>
-                  </div>
-                </div>
-                <div className="action-row">
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    disabled={busy || submission.status !== "PENDING"}
-                    onClick={() => reviewDeposit(submission.id, "APPROVED")}
-                  >
-                    Approved
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    disabled={busy || submission.status !== "PENDING"}
-                    onClick={() => reviewDeposit(submission.id, "REJECTED")}
-                  >
-                    Rejected
-                  </button>
-                </div>
-              </article>
-            ))
+                    </td>
+                    <td>
+                      <span
+                        className={`badge ${
+                          submission.status === "REJECTED"
+                            ? "danger"
+                            : submission.status === "PENDING"
+                              ? "warn"
+                              : ""
+                        }`}
+                      >
+                        {submission.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="action-row action-row-compact">
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={busy || submission.status !== "PENDING"}
+                          onClick={() => reviewDeposit(submission.id, "APPROVED")}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={busy || submission.status !== "PENDING"}
+                          onClick={() => reviewDeposit(submission.id, "REJECTED")}
+                        >
+                          Reject
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={busy || submission.user.email === "admin@ethprofito.com"}
+                          onClick={() => setUserState(submission.user.id, true, "PENDING")}
+                        >
+                          Restrict
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       </article>
 
       <article className="panel">
         <p className="muted-label">Withdrawal requests</p>
-        <div className="admin-grid-cards">
+        <div className="table-shell" style={{ marginTop: "1rem" }}>
           {withdrawalRequests.length === 0 ? (
             <p className="muted">No withdrawal requests found.</p>
           ) : (
-            withdrawalRequests.map((request) => (
-              <article key={request.id} className="admin-detail-card">
-                <div className="admin-card-head">
-                  <div>
-                    <strong>{request.user.name ?? request.user.email}</strong>
-                    <div className="muted small">{request.user.email}</div>
-                  </div>
-                  <span className={`badge ${request.status === "REJECTED" ? "danger" : request.status === "PENDING" ? "warn" : ""}`}>
-                    {request.status}
-                  </span>
-                </div>
-                <div className="detail-list">
-                  <div><span className="muted small">Asset</span><strong>{request.asset.symbol}</strong></div>
-                  <div><span className="muted small">Amount</span><strong>{request.amount.toString()}</strong></div>
-                  <div><span className="muted small">Network</span><strong>{request.network}</strong></div>
-                  <div><span className="muted small">Destination</span><strong>{request.destination}</strong></div>
-                </div>
-                <div className="action-row">
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    disabled={busy || request.status !== "PENDING"}
-                    onClick={() => reviewWithdrawal(request.id, "APPROVED")}
-                  >
-                    Approved
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    disabled={busy || request.status !== "PENDING"}
-                    onClick={() => reviewWithdrawal(request.id, "REJECTED")}
-                  >
-                    Rejected
-                  </button>
-                </div>
-              </article>
-            ))
+            <table className="table admin-request-table">
+              <thead>
+                <tr>
+                  <th>User / Time</th>
+                  <th>Asset / Amount</th>
+                  <th>Network / Destination</th>
+                  <th>Notes</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {withdrawalRequests.map((request) => (
+                  <tr key={request.id}>
+                    <td>
+                      <strong>{request.user.name ?? request.user.email}</strong>
+                      <div className="muted small">{request.user.email}</div>
+                      <div className="muted small">{formatDateTime(request.createdAt)}</div>
+                    </td>
+                    <td>
+                      <strong>{request.asset.symbol}</strong>
+                      <div className="muted small">{request.amount.toString()}</div>
+                    </td>
+                    <td>
+                      <strong>{request.network}</strong>
+                      <div className="muted small">{request.destination}</div>
+                    </td>
+                    <td>
+                      <div className="muted small">{request.note ?? "No user note"}</div>
+                      <div className="muted small">{request.adminNote ?? "No admin note"}</div>
+                    </td>
+                    <td>
+                      <span
+                        className={`badge ${
+                          request.status === "REJECTED"
+                            ? "danger"
+                            : request.status === "PENDING"
+                              ? "warn"
+                              : ""
+                        }`}
+                      >
+                        {request.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="action-row action-row-compact">
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={busy || request.status !== "PENDING"}
+                          onClick={() => reviewWithdrawal(request.id, "APPROVED")}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={busy || request.status !== "PENDING"}
+                          onClick={() => reviewWithdrawal(request.id, "REJECTED")}
+                        >
+                          Reject
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={busy || request.user.email === "admin@ethprofito.com"}
+                          onClick={() => setUserState(request.user.id, true, "PENDING")}
+                        >
+                          Restrict
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       </article>
