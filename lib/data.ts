@@ -114,9 +114,17 @@ export const adminActions = [
   "Control market visibility and supported instruments"
 ] as const;
 
-export const binaryDurations = [30, 60, 90, 120, 300] as const;
+export const binaryOptionRules = [
+  { durationSeconds: 30, payoutPercent: 30, minimumStake: 300 },
+  { durationSeconds: 60, payoutPercent: 40, minimumStake: 5000 },
+  { durationSeconds: 90, payoutPercent: 50, minimumStake: 20000 },
+  { durationSeconds: 120, payoutPercent: 60, minimumStake: 50000 },
+  { durationSeconds: 300, payoutPercent: 70, minimumStake: 100000 }
+] as const;
 
-export const binaryPayoutPercents = [30, 40, 50, 60, 70] as const;
+export const binaryDurations = binaryOptionRules.map((rule) => rule.durationSeconds) as readonly number[];
+
+export const binaryPayoutPercents = binaryOptionRules.map((rule) => rule.payoutPercent) as readonly number[];
 type MarketCard = {
   symbol: string;
   name: string;

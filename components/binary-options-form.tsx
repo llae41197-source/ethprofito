@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { binaryDurations, binaryPayoutPercents } from "@/lib/data";
+import { FormEvent, useMemo, useState } from "react";
+import { binaryOptionRules } from "@/lib/data";
 
 type BalanceRow = {
   asset: {
@@ -24,6 +24,16 @@ type BinaryOptionsFormProps = {
 export function BinaryOptionsForm({ balances, markets }: BinaryOptionsFormProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [durationSeconds, setDurationSeconds] = useState<number>(binaryOptionRules[0].durationSeconds);
+
+  const activeRule = useMemo(
+    () =>
+      binaryOptionRules.find((rule) => rule.durationSeconds === durationSeconds) ?? binaryOptionRules[0],
+    [durationSeconds]
+  );
+
+  const usdtBalance =
+    balances.find((balance) => balance.asset.symbol === "USDT")?.amount ?? 0;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -41,7 +51,6 @@ export function BinaryOptionsForm({ balances, markets }: BinaryOptionsFormProps)
         assetSymbol: form.get("assetSymbol"),
         direction: form.get("direction"),
         durationSeconds: Number(form.get("durationSeconds")),
-        payoutPercent: Number(form.get("payoutPercent")),
         stakeAmount: Number(form.get("stakeAmount"))
       })
     });
@@ -86,10 +95,15 @@ export function BinaryOptionsForm({ balances, markets }: BinaryOptionsFormProps)
 
         <label className="field">
           <span>Duration</span>
-          <select name="durationSeconds" required>
-            {binaryDurations.map((duration) => (
-              <option key={duration} value={duration}>
-                {duration}s
+          <select
+            name="durationSeconds"
+            required
+            value={durationSeconds}
+            onChange={(event) => setDurationSeconds(Number(event.target.value))}
+          >
+            {binaryOptionRules.map((rule) => (
+              <option key={rule.durationSeconds} value={rule.durationSeconds}>
+                {rule.durationSeconds}s
               </option>
             ))}
           </select>
@@ -97,26 +111,35 @@ export function BinaryOptionsForm({ balances, markets }: BinaryOptionsFormProps)
 
         <label className="field">
           <span>Payout %</span>
-          <select name="payoutPercent" required>
-            {binaryPayoutPercents.map((percent) => (
-              <option key={percent} value={percent}>
-                {percent}%
-              </option>
-            ))}
-          </select>
+          <input value={`${activeRule.payoutPercent}%`} readOnly />
         </label>
 
         <label className="field">
-          <span>Stake amount</span>
-          <input name="stakeAmount" type="number" step="0.01" min="1" required />
+          <span>Stake amount (USDT)</span>
+          <input
+            name="stakeAmount"
+            type="number"
+            step="0.01"
+            min={activeRule.minimumStake}
+            placeholder={`Minimum ${activeRule.minimumStake} USDT`}
+            required
+          />
         </label>
 
         <div className="panel" style={{ padding: "0.9rem" }}>
           <p className="muted small" style={{ margin: 0 }}>
-            Available balances:{" "}
+            Market rule: {activeRule.durationSeconds}s returns {activeRule.payoutPercent}% profit with a
+            minimum trade of {activeRule.minimumStake.toLocaleString()} USDT.
+          </p>
+          <p className="muted small" style={{ margin: "0.5rem 0 0" }}>
+            Available USDT: {Number(usdtBalance).toFixed(4)}
+          </p>
+          <p className="muted small" style={{ margin: "0.5rem 0 0" }}>
+            Other balances:{" "}
             {balances
+              .filter((balance) => balance.asset.symbol !== "USDT")
               .map((balance) => `${balance.asset.symbol} ${Number(balance.amount).toFixed(4)}`)
-              .join(", ")}
+              .join(", ") || "None"}
           </p>
         </div>
 

@@ -1,13 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUserSession } from "@/lib/session";
-import { binaryDurations, binaryPayoutPercents } from "@/lib/data";
-
-const simulatedQuotes: Record<string, number> = {
-  BTC: 84320,
-  ETH: 4180,
-  SOL: 162.12
-};
+import { binaryDurations } from "@/lib/data";
+import { getBinaryRule } from "@/lib/binary-options";
+import { getUsdQuote } from "@/lib/market-quotes";
 
 export async function POST(request: Request) {
   const session = await requireApiUserSession();
@@ -25,7 +21,6 @@ export async function POST(request: Request) {
         assetSymbol?: string;
         direction?: string;
         durationSeconds?: number;
-        payoutPercent?: number;
         stakeAmount?: number;
       }
     | null;
@@ -33,7 +28,6 @@ export async function POST(request: Request) {
   const assetSymbol = body?.assetSymbol?.trim().toUpperCase();
   const direction = body?.direction?.trim().toUpperCase();
   const durationSeconds = Number(body?.durationSeconds);
-  const payoutPercent = Number(body?.payoutPercent);
   const stakeAmount = Number(body?.stakeAmount);
 
   if (!assetSymbol || !["CALL", "PUT"].includes(direction ?? "")) {
@@ -44,40 +38,59 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unsupported binary option duration." }, { status: 400 });
   }
 
-  if (!binaryPayoutPercents.includes(payoutPercent as (typeof binaryPayoutPercents)[number])) {
-    return NextResponse.json({ error: "Unsupported payout percentage." }, { status: 400 });
-  }
-
   if (!Number.isFinite(stakeAmount) || stakeAmount <= 0) {
     return NextResponse.json({ error: "Stake amount must be positive." }, { status: 400 });
   }
 
-  const [asset, balance] = await Promise.all([
+  const rule = getBinaryRule(durationSeconds);
+
+  if (!rule) {
+    return NextResponse.json({ error: "Unsupported binary option duration." }, { status: 400 });
+  }
+
+  if (stakeAmount < rule.minimumStake) {
+    return NextResponse.json(
+      {
+        error: `Minimum stake for ${durationSeconds}s is ${rule.minimumStake} USDT.`
+      },
+      { status: 400 }
+    );
+  }
+
+  const [asset, usdtAsset, usdtBalance, openingQuote] = await Promise.all([
     prisma.asset.findUnique({
       where: { symbol: assetSymbol }
+    }),
+    prisma.asset.findUnique({
+      where: { symbol: "USDT" }
     }),
     prisma.balance.findFirst({
       where: {
         userId: session.id,
         asset: {
-          symbol: assetSymbol
+          symbol: "USDT"
         }
       },
       include: {
         asset: true
       }
-    })
+    }),
+    getUsdQuote(assetSymbol)
   ]);
 
   if (!asset || asset.assetClass !== "CRYPTO") {
     return NextResponse.json({ error: "Binary options are enabled only for supported cryptos." }, { status: 400 });
   }
 
-  if (!balance || Number(balance.amount) < stakeAmount) {
-    return NextResponse.json({ error: "Insufficient available balance." }, { status: 400 });
+  if (!usdtAsset) {
+    return NextResponse.json({ error: "USDT wallet asset is not configured." }, { status: 500 });
   }
 
-  const openingPrice = simulatedQuotes[assetSymbol] ?? 0;
+  if (!usdtBalance || Number(usdtBalance.amount) < stakeAmount) {
+    return NextResponse.json({ error: "Insufficient USDT available balance." }, { status: 400 });
+  }
+
+  const openingPrice = openingQuote?.price ?? 0;
 
   if (!openingPrice) {
     return NextResponse.json({ error: "No opening quote available for this asset." }, { status: 400 });
@@ -87,10 +100,10 @@ export async function POST(request: Request) {
 
   await prisma.$transaction(async (tx) => {
     await tx.balance.update({
-      where: { id: balance.id },
+      where: { id: usdtBalance.id },
       data: {
-        amount: Number(balance.amount) - stakeAmount,
-        lockedAmount: Number(balance.lockedAmount) + stakeAmount
+        amount: Number(usdtBalance.amount) - stakeAmount,
+        lockedAmount: Number(usdtBalance.lockedAmount) + stakeAmount
       }
     });
 
@@ -101,7 +114,7 @@ export async function POST(request: Request) {
         marketSymbol: `${assetSymbol}USD`,
         direction: direction as "CALL" | "PUT",
         durationSeconds,
-        payoutPercent,
+        payoutPercent: rule.payoutPercent,
         stakeAmount,
         openingPrice,
         expiresAt,
@@ -112,17 +125,17 @@ export async function POST(request: Request) {
     await tx.ledgerEntry.create({
       data: {
         userId: session.id,
-        assetId: asset.id,
+        assetId: usdtAsset.id,
         type: "HOLD",
         amount: -stakeAmount,
         reference: `binary-option-${Date.now()}`,
-        notes: `Binary option ${direction} ${durationSeconds}s at ${payoutPercent}% payout`
+        notes: `Binary option ${direction} ${durationSeconds}s at ${rule.payoutPercent}% payout using USDT stake`
       }
     });
   });
 
   return NextResponse.json({
     ok: true,
-    message: "Binary option ticket created and stake moved into locked balance."
+    message: `Binary option ticket created. ${stakeAmount.toFixed(2)} USDT is now locked until the ${durationSeconds}s timer expires.`
   });
 }

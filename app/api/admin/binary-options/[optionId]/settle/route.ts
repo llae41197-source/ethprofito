@@ -45,11 +45,19 @@ export async function POST(request: Request, context: Context) {
   }
 
   await prisma.$transaction(async (tx) => {
+    const usdtAsset = await tx.asset.findUnique({
+      where: { symbol: "USDT" }
+    });
+
+    if (!usdtAsset) {
+      throw new Error("USDT asset is not configured.");
+    }
+
     const balance = await tx.balance.findUnique({
       where: {
         userId_assetId: {
           userId: option.userId,
-          assetId: option.assetId
+          assetId: usdtAsset.id
         }
       }
     });
@@ -84,7 +92,7 @@ export async function POST(request: Request, context: Context) {
     await tx.ledgerEntry.create({
       data: {
         userId: option.userId,
-        assetId: option.assetId,
+        assetId: usdtAsset.id,
         type: outcome === "WON" ? "TRADE" : outcome === "CANCELLED" ? "RELEASE" : "FEE",
         amount: releaseAmount,
         reference: option.id,
