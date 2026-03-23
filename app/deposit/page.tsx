@@ -1,4 +1,5 @@
 import { DepositUploadForm } from "@/components/deposit-upload-form";
+import { CopyAddressButton } from "@/components/copy-address-button";
 import { getDepositPageSnapshot } from "@/lib/queries";
 import { requireUserSession } from "@/lib/session";
 
@@ -27,7 +28,10 @@ export default async function DepositPage() {
               </div>
               <span className="badge">{item.confirmations}</span>
             </div>
-            <div className="deposit-code">{item.address}</div>
+            <div className="deposit-code-row">
+              <div className="deposit-code">{item.address}</div>
+              <CopyAddressButton address={item.address} />
+            </div>
             <p className="muted">{item.note}</p>
           </article>
         ))}
