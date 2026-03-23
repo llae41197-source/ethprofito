@@ -1,4 +1,5 @@
 import { depositAddresses, platformStats } from "@/lib/data";
+import { CopyAddressButton } from "@/components/copy-address-button";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,7 @@ export default function HomePage() {
       <section className="section" style={{ paddingTop: "3rem" }}>
         <div className="hero-card">
           <div className="grid-3">
-            {platformStats.map((item) => (
+            {platformStats.filter((item) => item.label !== "Custody Controls").map((item) => (
               <article key={item.label} className="stat-card">
                 <span className="muted-label">{item.label}</span>
                 <p className="stat-value">{item.value}</p>
@@ -23,7 +24,10 @@ export default function HomePage() {
                 <article key={item.symbol}>
                   <p className="muted-label">{item.symbol}</p>
                   <p>{item.chain}</p>
-                  <div className="deposit-code">{item.address}</div>
+                  <div className="deposit-code-row">
+                    <div className="deposit-code">{item.address}</div>
+                    <CopyAddressButton address={item.address} />
+                  </div>
                 </article>
               ))}
             </div>

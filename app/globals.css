@@ -275,6 +275,25 @@ select {
   font-size: 0.92rem;
 }
 
+.deposit-code-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.deposit-code-row .deposit-code {
+  flex: 1;
+}
+
+.copy-btn {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+  color: var(--text);
+  background: rgba(3, 14, 22, 0.88);
+  cursor: pointer;
+}
+
 .tv-frame {
   width: 100%;
   min-height: 420px;
