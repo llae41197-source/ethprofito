@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useActionState } from "react";
+import { submitDepositProof, type DepositFormState } from "@/app/deposit/actions";
 
 type DepositAddressRow = {
   symbol: string;
@@ -12,38 +13,13 @@ type DepositUploadFormProps = {
 };
 
 export function DepositUploadForm({ depositAddresses }: DepositUploadFormProps) {
-  const [message, setMessage] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setMessage(null);
-
-    const formData = new FormData(event.currentTarget);
-    const response = await fetch("/api/deposits", {
-      method: "POST",
-      body: formData,
-      credentials: "include"
-    });
-
-    const result = (await response.json().catch(() => null)) as { error?: string; message?: string } | null;
-
-    if (!response.ok) {
-      setMessage(result?.error ?? "Unable to submit deposit proof.");
-      setBusy(false);
-      return;
-    }
-
-    setMessage(result?.message ?? "Deposit proof submitted.");
-    setBusy(false);
-    window.location.reload();
-  }
+  const initialState: DepositFormState = {};
+  const [state, formAction, pending] = useActionState(submitDepositProof, initialState);
 
   return (
     <article className="panel">
       <p className="muted-label">Upload transaction proof</p>
-      <form className="admin-form" onSubmit={handleSubmit}>
+      <form className="admin-form" action={formAction}>
         <label className="field">
           <span>Asset</span>
           <select name="assetSymbol" required>
@@ -80,12 +56,21 @@ export function DepositUploadForm({ depositAddresses }: DepositUploadFormProps) 
           <textarea name="note" placeholder="Anything the admin should verify" />
         </label>
 
-        <button type="submit" className="btn" disabled={busy}>
-          {busy ? "Uploading..." : "Submit deposit proof"}
+        <button type="submit" className="btn" disabled={pending}>
+          {pending ? "Uploading..." : "Submit deposit proof"}
         </button>
       </form>
 
-      {message ? <p className="muted" style={{ marginTop: "1rem" }}>{message}</p> : null}
+      {state.error ? (
+        <p className="form-error" style={{ marginTop: "1rem" }}>
+          {state.error}
+        </p>
+      ) : null}
+      {state.success ? (
+        <p className="muted" style={{ marginTop: "1rem" }}>
+          {state.success}
+        </p>
+      ) : null}
     </article>
   );
 }
