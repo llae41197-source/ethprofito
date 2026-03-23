@@ -16,7 +16,7 @@ export async function SiteHeader() {
       <div className="shell topbar-inner">
         <Link href="/" className="brand">
           <span className="brand-mark">EP</span>
-          <span>ethprofito.com</span>
+          <span>ethprofito</span>
         </Link>
         <nav className="nav">
           {links.map((link) => (
