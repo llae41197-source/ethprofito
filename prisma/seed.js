@@ -10,7 +10,7 @@ function hashPassword(password) {
 }
 
 async function main() {
-  const [btc, eth, sol, gold, apple, tesla] = await Promise.all([
+  const [btc, eth, sol, usdt, gold, apple, tesla] = await Promise.all([
     prisma.asset.upsert({
       where: { symbol: "BTC" },
       update: {},
@@ -25,6 +25,11 @@ async function main() {
       where: { symbol: "SOL" },
       update: {},
       create: { symbol: "SOL", name: "Solana", assetClass: "CRYPTO" }
+    }),
+    prisma.asset.upsert({
+      where: { symbol: "USDT" },
+      update: {},
+      create: { symbol: "USDT", name: "Tether", assetClass: "CRYPTO" }
     }),
     prisma.asset.upsert({
       where: { symbol: "XAU" },
@@ -126,6 +131,11 @@ async function main() {
       where: { userId_assetId: { userId: trader.id, assetId: gold.id } },
       update: { amount: 55, lockedAmount: 10 },
       create: { userId: trader.id, assetId: gold.id, amount: 55, lockedAmount: 10 }
+    }),
+    prisma.balance.upsert({
+      where: { userId_assetId: { userId: trader.id, assetId: usdt.id } },
+      update: { amount: 2500, lockedAmount: 0 },
+      create: { userId: trader.id, assetId: usdt.id, amount: 2500, lockedAmount: 0 }
     })
   ]);
 

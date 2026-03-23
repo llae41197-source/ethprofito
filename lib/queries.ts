@@ -128,6 +128,75 @@ export async function getDepositPageSnapshot(userId: string) {
   };
 }
 
+export async function getWalletSnapshot(userId: string) {
+  if (!(await hasUsersTable())) {
+    return {
+      balances: [
+        { asset: { symbol: "BTC", name: "Bitcoin" }, amount: 1.8, lockedAmount: 0.25 },
+        { asset: { symbol: "ETH", name: "Ethereum" }, amount: 14.2, lockedAmount: 2.1 },
+        { asset: { symbol: "USDT", name: "Tether" }, amount: 2500, lockedAmount: 0 }
+      ],
+      depositSubmissions: [],
+      withdrawalRequests: [],
+      swapOrders: [],
+      addresses: depositAddresses
+    };
+  }
+
+  const [balances, depositSubmissions, withdrawalRequests, swapOrders, addresses] = await Promise.all([
+    prisma.balance.findMany({
+      where: { userId },
+      include: { asset: true },
+      orderBy: { asset: { symbol: "asc" } }
+    }),
+    prisma.depositSubmission.findMany({
+      where: { userId },
+      include: { asset: true },
+      orderBy: { createdAt: "desc" },
+      take: 20
+    }),
+    prisma.withdrawalRequest.findMany({
+      where: { userId },
+      include: { asset: true },
+      orderBy: { createdAt: "desc" },
+      take: 20
+    }),
+    prisma.swapOrder.findMany({
+      where: { userId },
+      include: { fromAsset: true, toAsset: true },
+      orderBy: { createdAt: "desc" },
+      take: 20
+    }),
+    prisma.depositAddress.findMany({
+      where: { active: true },
+      orderBy: { assetCode: "asc" }
+    })
+  ]);
+
+  return {
+    balances: balances.map((balance) => ({
+      ...balance,
+      amount: Number(balance.amount),
+      lockedAmount: Number(balance.lockedAmount)
+    })),
+    depositSubmissions: depositSubmissions.map((submission) => ({
+      ...submission,
+      amount: Number(submission.amount)
+    })),
+    withdrawalRequests: withdrawalRequests.map((request) => ({
+      ...request,
+      amount: Number(request.amount)
+    })),
+    swapOrders: swapOrders.map((order) => ({
+      ...order,
+      fromAmount: Number(order.fromAmount),
+      toAmount: Number(order.toAmount),
+      rate: Number(order.rate)
+    })),
+    addresses
+  };
+}
+
 async function getFallbackAdminSnapshot() {
   return {
     users: sampleAccounts.map((account, index) => ({
@@ -141,12 +210,14 @@ async function getFallbackAdminSnapshot() {
     })),
     auditLogs: [],
     depositSubmissions: [],
+    withdrawalRequests: [],
     binaryOptions: [],
     totals: {
       totalUsers: sampleAccounts.length,
       restrictedUsers: 1,
       pendingDeposits: 0,
-      openBinaryOptions: 0
+      openBinaryOptions: 0,
+      pendingWithdrawals: 0
     }
   };
 }
@@ -161,10 +232,12 @@ export async function getAdminSnapshot() {
     auditLogs,
     depositSubmissions,
     binaryOptions,
+    withdrawalRequests,
     totalUsers,
     restrictedUsers,
     pendingDeposits,
-    openBinaryOptions
+    openBinaryOptions,
+    pendingWithdrawals
   ] = await Promise.all([
     prisma.user.findMany({
       orderBy: { createdAt: "desc" },
@@ -214,10 +287,19 @@ export async function getAdminSnapshot() {
       orderBy: { createdAt: "desc" },
       take: 12
     }),
+    prisma.withdrawalRequest.findMany({
+      include: {
+        user: true,
+        asset: true
+      },
+      orderBy: { createdAt: "desc" },
+      take: 12
+    }),
     prisma.user.count(),
     prisma.user.count({ where: { isRestricted: true } }),
     prisma.depositSubmission.count({ where: { status: "PENDING" } }),
-    prisma.binaryOptionTrade.count({ where: { status: "OPEN" } })
+    prisma.binaryOptionTrade.count({ where: { status: "OPEN" } }),
+    prisma.withdrawalRequest.count({ where: { status: "PENDING" } })
   ]);
 
   return {
@@ -234,6 +316,10 @@ export async function getAdminSnapshot() {
       ...submission,
       amount: Number(submission.amount)
     })),
+    withdrawalRequests: withdrawalRequests.map((request) => ({
+      ...request,
+      amount: Number(request.amount)
+    })),
     binaryOptions: binaryOptions.map((option) => ({
       ...option,
       stakeAmount: Number(option.stakeAmount),
@@ -245,7 +331,8 @@ export async function getAdminSnapshot() {
       totalUsers,
       restrictedUsers,
       pendingDeposits,
-      openBinaryOptions
+      openBinaryOptions,
+      pendingWithdrawals
     }
   };
 }

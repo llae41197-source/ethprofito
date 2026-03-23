@@ -22,6 +22,9 @@ export default async function DashboardPage() {
             <Link href="/trade" className="btn">
               Open binary options
             </Link>
+            <Link href="/wallet" className="btn-secondary">
+              Open wallet
+            </Link>
           </div>
         </div>
       </div>

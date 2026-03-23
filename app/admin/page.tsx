@@ -37,6 +37,10 @@ export default async function AdminPage() {
                 <p className="muted-label">Open binary options</p>
                 <p className="stat-value">{data.totals.openBinaryOptions}</p>
               </div>
+              <div>
+                <p className="muted-label">Pending withdrawals</p>
+                <p className="stat-value">{data.totals.pendingWithdrawals}</p>
+              </div>
             </div>
           </article>
 
@@ -90,6 +94,7 @@ export default async function AdminPage() {
           users={data.users}
           depositSubmissions={data.depositSubmissions}
           binaryOptions={data.binaryOptions}
+          withdrawalRequests={data.withdrawalRequests}
         />
       </div>
     </main>

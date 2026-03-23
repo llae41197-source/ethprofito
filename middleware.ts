@@ -9,7 +9,8 @@ export function middleware(request: NextRequest) {
     (pathname.startsWith("/dashboard") ||
       pathname.startsWith("/admin") ||
       pathname.startsWith("/trade") ||
-      pathname.startsWith("/deposit")) &&
+      pathname.startsWith("/deposit") ||
+      pathname.startsWith("/wallet")) &&
     !hasSession
   ) {
     const loginUrl = new URL("/login", request.url);
@@ -21,5 +22,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/dashboard/:path*", "/trade/:path*", "/deposit/:path*"]
+  matcher: ["/admin/:path*", "/dashboard/:path*", "/trade/:path*", "/deposit/:path*", "/wallet/:path*"]
 };

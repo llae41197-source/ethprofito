@@ -14,6 +14,8 @@ export async function GET() {
   return NextResponse.json({
     users: data.totals.totalUsers,
     restrictedUsers: data.totals.restrictedUsers,
-    auditLogs: data.auditLogs.length
+    auditLogs: data.auditLogs.length,
+    pendingDeposits: data.totals.pendingDeposits,
+    pendingWithdrawals: data.totals.pendingWithdrawals
   });
 }

@@ -8,6 +8,7 @@ export async function SiteHeader() {
     { href: "/", label: "Home" },
     { href: "/markets", label: "Markets" },
     { href: "/deposit", label: "Deposit" },
+    ...(session ? [{ href: "/wallet", label: "Wallet" }] : []),
     ...(session ? [{ href: "/trade", label: "Trade" }] : [])
   ];
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 
 type AdminUser = {
   id: string;
@@ -56,11 +56,45 @@ type AdminActionsProps = {
   users: AdminUser[];
   depositSubmissions: DepositSubmission[];
   binaryOptions: BinaryOption[];
+  withdrawalRequests: Array<{
+    id: string;
+    amount: number | string;
+    destination: string;
+    network: string;
+    status: string;
+    adminNote: string | null;
+    user: {
+      email: string;
+      name: string | null;
+    };
+    asset: {
+      symbol: string;
+    };
+  }>;
 };
 
-export function AdminActions({ users, depositSubmissions, binaryOptions }: AdminActionsProps) {
+export function AdminActions({
+  users,
+  depositSubmissions,
+  binaryOptions,
+  withdrawalRequests
+}: AdminActionsProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const visibleUsers = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) {
+      return users;
+    }
+
+    return users.filter((user) => {
+      const haystack = `${user.name ?? ""} ${user.email} ${user.role}`.toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [search, users]);
 
   async function requestJson(url: string, body: Record<string, unknown>) {
     setBusy(true);
@@ -144,6 +178,20 @@ export function AdminActions({ users, depositSubmissions, binaryOptions }: Admin
     }
   }
 
+  async function reviewWithdrawal(event: FormEvent<HTMLFormElement>, requestId: string) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const ok = await requestJson(`/api/admin/withdrawals/${requestId}/review`, {
+      status: form.get("status"),
+      adminNote: form.get("adminNote")
+    });
+
+    if (ok) {
+      setMessage("Withdrawal review saved.");
+      window.location.reload();
+    }
+  }
+
   return (
     <div className="admin-actions-shell stack">
       <article className="panel">
@@ -183,8 +231,16 @@ export function AdminActions({ users, depositSubmissions, binaryOptions }: Admin
 
       <article className="panel">
         <p className="muted-label">User permissions</p>
+        <label className="field" style={{ marginBottom: "1rem" }}>
+          <span>Search users</span>
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Name, email, or role"
+          />
+        </label>
         <div className="admin-grid">
-          {users.map((user) => (
+          {visibleUsers.map((user) => (
             <div key={user.id} className="admin-user-card">
               <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
                 <div>
@@ -270,6 +326,44 @@ export function AdminActions({ users, depositSubmissions, binaryOptions }: Admin
 
                   <button type="submit" className="btn-secondary" disabled={busy || submission.status !== "PENDING"}>
                     {submission.status === "PENDING" ? "Save deposit review" : `Already ${submission.status}`}
+                  </button>
+                </form>
+              </div>
+            ))
+          )}
+        </div>
+      </article>
+
+      <article className="panel">
+        <p className="muted-label">Withdrawal review queue</p>
+        <div className="admin-grid">
+          {withdrawalRequests.length === 0 ? (
+            <p className="muted">No withdrawal requests found.</p>
+          ) : (
+            withdrawalRequests.map((request) => (
+              <div key={request.id} className="admin-user-card">
+                <strong>{request.user.name ?? request.user.email}</strong>
+                <p className="muted small">
+                  {request.asset.symbol} {request.amount.toString()} via {request.network}
+                </p>
+                <p className="muted small">{request.destination}</p>
+
+                <form className="admin-form" onSubmit={(event) => reviewWithdrawal(event, request.id)}>
+                  <label className="field">
+                    <span>Status</span>
+                    <select name="status" defaultValue={request.status}>
+                      <option value="APPROVED">Approve</option>
+                      <option value="REJECTED">Reject / return funds</option>
+                    </select>
+                  </label>
+
+                  <label className="field">
+                    <span>Admin note</span>
+                    <textarea name="adminNote" defaultValue={request.adminNote ?? ""} />
+                  </label>
+
+                  <button type="submit" className="btn-secondary" disabled={busy || request.status !== "PENDING"}>
+                    {request.status === "PENDING" ? "Save withdrawal review" : `Already ${request.status}`}
                   </button>
                 </form>
               </div>

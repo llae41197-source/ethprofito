@@ -60,6 +60,18 @@ enum BinaryOptionStatus {
   CANCELLED
 }
 
+enum WithdrawalRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SwapOrderStatus {
+  PENDING
+  COMPLETED
+  REJECTED
+}
+
 model User {
   id            String        @id @default(cuid())
   email         String        @unique
@@ -74,6 +86,8 @@ model User {
   trades        Trade[]
   binaryOptions BinaryOptionTrade[]
   depositSubmissions DepositSubmission[]
+  withdrawalRequests WithdrawalRequest[]
+  swapOrders        SwapOrder[]
   managedLogs   AuditLog[]    @relation("AuditActor")
   targetLogs    AuditLog[]    @relation("AuditTarget")
   ledgerEntries LedgerEntry[]
@@ -91,6 +105,9 @@ model Asset {
   trades         Trade[]
   binaryOptions  BinaryOptionTrade[]
   depositSubmissions DepositSubmission[]
+  withdrawalRequests WithdrawalRequest[] @relation("WithdrawalAsset")
+  swapFromOrders     SwapOrder[]         @relation("SwapFromAsset")
+  swapToOrders       SwapOrder[]         @relation("SwapToAsset")
   addresses      DepositAddress[]
   ledgerEntries  LedgerEntry[]
 }
@@ -209,4 +226,42 @@ model BinaryOptionTrade {
   asset          Asset                 @relation(fields: [assetId], references: [id], onDelete: Cascade)
 
   @@index([userId, status, createdAt])
+}
+
+model WithdrawalRequest {
+  id             String                  @id @default(cuid())
+  userId         String
+  assetId        String
+  amount         Decimal
+  destination    String
+  network        String
+  note           String?
+  adminNote      String?
+  status         WithdrawalRequestStatus @default(PENDING)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  reviewedAt     DateTime?
+  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset          Asset                   @relation("WithdrawalAsset", fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt])
+}
+
+model SwapOrder {
+  id             String          @id @default(cuid())
+  userId         String
+  fromAssetId    String
+  toAssetId      String
+  fromAmount     Decimal
+  toAmount       Decimal
+  rate           Decimal
+  status         SwapOrderStatus @default(COMPLETED)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  note           String?
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromAsset      Asset           @relation("SwapFromAsset", fields: [fromAssetId], references: [id], onDelete: Cascade)
+  toAsset        Asset           @relation("SwapToAsset", fields: [toAssetId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
