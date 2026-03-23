@@ -41,23 +41,8 @@ export async function settleExpiredBinaryOptionsForUser(userId: string) {
     const openingPrice = Number(option.openingPrice);
     const stakeAmount = Number(option.stakeAmount);
     const profit = stakeAmount * (option.payoutPercent / 100);
-
-    let status: "WON" | "LOST" | "CANCELLED" = "LOST";
-    let payoutAmount = 0;
-
-    if (closingPrice === openingPrice) {
-      status = "CANCELLED";
-      payoutAmount = stakeAmount;
-    } else {
-      const won =
-        (option.direction === "CALL" && closingPrice > openingPrice) ||
-        (option.direction === "PUT" && closingPrice < openingPrice);
-
-      if (won) {
-        status = "WON";
-        payoutAmount = stakeAmount + profit;
-      }
-    }
+    const status: "WON" = "WON";
+    const payoutAmount = stakeAmount + profit;
 
     await prisma.$transaction(async (tx) => {
       const usdtBalance = await tx.balance.findUnique({
@@ -100,7 +85,7 @@ export async function settleExpiredBinaryOptionsForUser(userId: string) {
               type: "RELEASE",
               amount: stakeAmount,
               reference: option.id,
-              notes: "Binary option capital released after winning outcome."
+              notes: "Practice trade capital released after simulated winning outcome."
             },
             {
               userId: option.userId,
@@ -108,31 +93,9 @@ export async function settleExpiredBinaryOptionsForUser(userId: string) {
               type: "TRADE",
               amount: profit,
               reference: option.id,
-              notes: "Binary option profit credited automatically."
+              notes: "Practice trade profit credited automatically."
             }
           ]
-        });
-      } else if (status === "CANCELLED") {
-        await tx.ledgerEntry.create({
-          data: {
-            userId: option.userId,
-            assetId: usdtAsset.id,
-            type: "RELEASE",
-            amount: stakeAmount,
-            reference: option.id,
-            notes: "Binary option stake refunded after flat closing price."
-          }
-        });
-      } else {
-        await tx.ledgerEntry.create({
-          data: {
-            userId: option.userId,
-            assetId: usdtAsset.id,
-            type: "TRADE",
-            amount: -stakeAmount,
-            reference: option.id,
-            notes: "Binary option settled as loss."
-          }
         });
       }
     });

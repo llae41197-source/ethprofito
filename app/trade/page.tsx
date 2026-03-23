@@ -19,11 +19,11 @@ export default async function TradePage() {
       <div className="section-head">
         <div>
           <span className="kicker">Binary options</span>
-          <h1 className="section-title">Create short-duration crypto option tickets.</h1>
+          <h1 className="section-title">Create short-duration demo crypto option tickets.</h1>
           <p className="section-copy">
             Duration now controls the payout and minimum capital automatically. Each trade uses
             USDT as the stake wallet, runs its countdown, and settles back into the user balance
-            after expiry.
+            after expiry in practice mode.
           </p>
         </div>
       </div>
