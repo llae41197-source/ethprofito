@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getOptionalSession } from "@/lib/session";
+import { LogoutButton } from "@/components/logout-button";
 
 export async function SiteHeader() {
   const session = await getOptionalSession();
@@ -25,7 +26,7 @@ export async function SiteHeader() {
           ))}
           {session ? <Link href="/dashboard">Dashboard</Link> : <Link href="/login">Login</Link>}
           {session?.role === "ADMIN" ? <Link href="/admin">Admin</Link> : null}
-          {session ? <Link href="/logout">Logout</Link> : null}
+          {session ? <LogoutButton /> : null}
         </nav>
       </div>
     </header>
