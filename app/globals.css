@@ -216,6 +216,12 @@ select {
   background: rgba(11, 23, 35, 0.6);
 }
 
+.btn-danger {
+  border-color: rgba(251, 113, 133, 0.34);
+  color: #fecdd3;
+  background: rgba(66, 12, 24, 0.48);
+}
+
 .section {
   padding: 2rem 0 4rem;
 }
@@ -236,6 +242,10 @@ select {
 .table {
   width: 100%;
   border-collapse: collapse;
+}
+
+.table-shell {
+  overflow-x: auto;
 }
 
 .table th,

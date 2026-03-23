@@ -47,7 +47,9 @@ type BinaryOption = {
   stakeAmount: number | string;
   openingPrice: number | string;
   status: string;
+  createdAt?: string | Date;
   user: {
+    id: string;
     email: string;
     name: string | null;
   };
@@ -125,7 +127,7 @@ export function AdminActions({
     }).format(new Date(value));
   }
 
-  async function requestJson(url: string, body: Record<string, unknown>) {
+  async function requestJson(url: string, body: Record<string, unknown> = {}) {
     setBusy(true);
     setMessage(null);
 
@@ -156,6 +158,15 @@ export function AdminActions({
 
     if (ok) {
       setMessage("User updated.");
+      window.location.reload();
+    }
+  }
+
+  async function deleteItem(url: string, successMessage: string) {
+    const ok = await requestJson(url);
+
+    if (ok) {
+      setMessage(successMessage);
       window.location.reload();
     }
   }
@@ -198,7 +209,11 @@ export function AdminActions({
     }
   }
 
-  async function settleOption(optionId: string, outcome: "WON" | "LOST" | "CANCELLED", openingPrice: number | string) {
+  async function settleOption(
+    optionId: string,
+    outcome: "WON" | "LOST" | "CANCELLED",
+    openingPrice: number | string
+  ) {
     const ok = await requestJson(`/api/admin/binary-options/${optionId}/settle`, {
       outcome,
       closingPrice: Number(openingPrice),
@@ -276,58 +291,80 @@ export function AdminActions({
             placeholder="Name, email, or role"
           />
         </label>
-        <div className="admin-grid-cards">
-          {visibleUsers.map((user) => (
-            <article key={user.id} className="admin-detail-card">
-              <div className="admin-card-head">
-                <div>
-                  <strong>{user.name ?? user.email}</strong>
-                  <div className="muted small">{user.email}</div>
-                </div>
-                <span className={`badge ${user.isRestricted ? "danger" : ""}`}>{user.role}</span>
-              </div>
-              <div className="detail-list">
-                <div><span className="muted small">KYC</span><strong>{user.kycStatus}</strong></div>
-                <div><span className="muted small">Restriction</span><strong>{user.isRestricted ? "Restricted" : "Active"}</strong></div>
-                <div>
-                  <span className="muted small">Balances</span>
-                  <strong>
+        <div className="table-shell">
+          <table className="table admin-request-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Role / KYC</th>
+                <th>Restriction</th>
+                <th>Balances</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleUsers.map((user) => (
+                <tr key={user.id}>
+                  <td>
+                    <strong>{user.name ?? user.email}</strong>
+                    <div className="muted small">{user.email}</div>
+                  </td>
+                  <td>
+                    <strong>{user.role}</strong>
+                    <div className="muted small">{user.kycStatus}</div>
+                  </td>
+                  <td>
+                    <span className={`badge ${user.isRestricted ? "danger" : ""}`}>
+                      {user.isRestricted ? "RESTRICTED" : "ACTIVE"}
+                    </span>
+                  </td>
+                  <td className="muted small">
                     {user.balances.length > 0
                       ? user.balances
                           .map((balance) => `${balance.asset.symbol} ${Number(balance.amount).toFixed(2)}`)
-                          .join(", ")
+                          .join(" | ")
                       : "No balances"}
-                  </strong>
-                </div>
-              </div>
-              <div className="action-row">
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  disabled={busy}
-                  onClick={() => setUserState(user.id, false, "APPROVED")}
-                >
-                  Approved
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  disabled={busy}
-                  onClick={() => setUserState(user.id, false, "REJECTED")}
-                >
-                  Rejected
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  disabled={busy}
-                  onClick={() => setUserState(user.id, true, user.kycStatus)}
-                >
-                  Restricted
-                </button>
-              </div>
-            </article>
-          ))}
+                  </td>
+                  <td>
+                    <div className="action-row action-row-compact">
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        disabled={busy}
+                        onClick={() => setUserState(user.id, false, "APPROVED")}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        disabled={busy}
+                        onClick={() => setUserState(user.id, false, "REJECTED")}
+                      >
+                        Reject
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        disabled={busy}
+                        onClick={() => setUserState(user.id, true, user.kycStatus)}
+                      >
+                        Restrict
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary btn-danger"
+                        disabled={busy || user.email === "admin@ethprofito.com"}
+                        onClick={() => deleteItem(`/api/admin/users/${user.id}/delete`, "User deleted.")}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </article>
 
@@ -417,6 +454,16 @@ export function AdminActions({
                         >
                           Restrict
                         </button>
+                        <button
+                          type="button"
+                          className="btn-secondary btn-danger"
+                          disabled={busy}
+                          onClick={() =>
+                            deleteItem(`/api/admin/deposits/${submission.id}/delete`, "Deposit record deleted.")
+                          }
+                        >
+                          Delete
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -503,6 +550,19 @@ export function AdminActions({
                         >
                           Restrict
                         </button>
+                        <button
+                          type="button"
+                          className="btn-secondary btn-danger"
+                          disabled={busy}
+                          onClick={() =>
+                            deleteItem(
+                              `/api/admin/withdrawals/${request.id}/delete`,
+                              "Withdrawal record deleted."
+                            )
+                          }
+                        >
+                          Delete
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -515,57 +575,99 @@ export function AdminActions({
 
       <article className="panel">
         <p className="muted-label">Binary options</p>
-        <div className="admin-grid-cards">
+        <div className="table-shell" style={{ marginTop: "1rem" }}>
           {binaryOptions.length === 0 ? (
             <p className="muted">No binary option tickets found.</p>
           ) : (
-            binaryOptions.map((option) => (
-              <article key={option.id} className="admin-detail-card">
-                <div className="admin-card-head">
-                  <div>
-                    <strong>{option.user.name ?? option.user.email}</strong>
-                    <div className="muted small">{option.user.email}</div>
-                  </div>
-                  <span className={`badge ${option.status === "LOST" ? "danger" : option.status === "OPEN" ? "warn" : ""}`}>
-                    {option.status}
-                  </span>
-                </div>
-                <div className="detail-list">
-                  <div><span className="muted small">Asset</span><strong>{option.asset.symbol}</strong></div>
-                  <div><span className="muted small">Direction</span><strong>{option.direction}</strong></div>
-                  <div><span className="muted small">Duration</span><strong>{option.durationSeconds}s</strong></div>
-                  <div><span className="muted small">Payout</span><strong>{option.payoutPercent}%</strong></div>
-                  <div><span className="muted small">Capital</span><strong>{option.stakeAmount.toString()} USDT</strong></div>
-                  <div><span className="muted small">Opening price</span><strong>{option.openingPrice.toString()}</strong></div>
-                </div>
-                <div className="action-row">
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    disabled={busy || option.status !== "OPEN"}
-                    onClick={() => settleOption(option.id, "WON", option.openingPrice)}
-                  >
-                    Approved
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    disabled={busy || option.status !== "OPEN"}
-                    onClick={() => settleOption(option.id, "LOST", option.openingPrice)}
-                  >
-                    Rejected
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    disabled={busy || option.status !== "OPEN"}
-                    onClick={() => settleOption(option.id, "CANCELLED", option.openingPrice)}
-                  >
-                    Restricted
-                  </button>
-                </div>
-              </article>
-            ))
+            <table className="table admin-request-table">
+              <thead>
+                <tr>
+                  <th>User / Time</th>
+                  <th>Asset / Direction</th>
+                  <th>Duration / Payout</th>
+                  <th>Capital / Price</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {binaryOptions.map((option) => (
+                  <tr key={option.id}>
+                    <td>
+                      <strong>{option.user.name ?? option.user.email}</strong>
+                      <div className="muted small">{option.user.email}</div>
+                      <div className="muted small">{formatDateTime(option.createdAt)}</div>
+                    </td>
+                    <td>
+                      <strong>{option.asset.symbol}</strong>
+                      <div className="muted small">{option.direction}</div>
+                    </td>
+                    <td>
+                      <strong>{option.durationSeconds}s</strong>
+                      <div className="muted small">{option.payoutPercent}%</div>
+                    </td>
+                    <td>
+                      <strong>{option.stakeAmount.toString()} USDT</strong>
+                      <div className="muted small">{option.openingPrice.toString()}</div>
+                    </td>
+                    <td>
+                      <span
+                        className={`badge ${
+                          option.status === "LOST"
+                            ? "danger"
+                            : option.status === "OPEN"
+                              ? "warn"
+                              : ""
+                        }`}
+                      >
+                        {option.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="action-row action-row-compact">
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={busy || option.status !== "OPEN"}
+                          onClick={() => settleOption(option.id, "WON", option.openingPrice)}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={busy || option.status !== "OPEN"}
+                          onClick={() => settleOption(option.id, "LOST", option.openingPrice)}
+                        >
+                          Reject
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          disabled={busy || option.user.email === "admin@ethprofito.com"}
+                          onClick={() => setUserState(option.user.id, true, "PENDING")}
+                        >
+                          Restrict
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary btn-danger"
+                          disabled={busy}
+                          onClick={() =>
+                            deleteItem(
+                              `/api/admin/binary-options/${option.id}/delete`,
+                              "Binary option record deleted."
+                            )
+                          }
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       </article>
