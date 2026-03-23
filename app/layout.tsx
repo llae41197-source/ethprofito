@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { SupportFloat } from "@/components/support-float";
 
 export const metadata: Metadata = {
   title: "ethprofito.com",
@@ -18,6 +19,7 @@ export default function RootLayout({
       <body>
         <SiteHeader />
         {children}
+        <SupportFloat />
         <SiteFooter />
       </body>
     </html>

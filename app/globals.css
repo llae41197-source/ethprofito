@@ -316,6 +316,43 @@ select {
   cursor: pointer;
 }
 
+.support-float {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.75rem 1rem 0.75rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(52, 211, 153, 0.32);
+  background: rgba(3, 14, 22, 0.94);
+  box-shadow: 0 18px 40px rgba(2, 10, 18, 0.42);
+}
+
+.support-float:hover {
+  border-color: rgba(52, 211, 153, 0.55);
+}
+
+.support-float-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: #03252e;
+  font-weight: 800;
+  font-size: 0.88rem;
+}
+
+.support-float-label {
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
 .tv-frame {
   width: 100%;
   min-height: 420px;
@@ -486,5 +523,15 @@ select {
   .topbar-inner {
     align-items: start;
     flex-direction: column;
+  }
+
+  .support-float {
+    right: 1rem;
+    bottom: 1rem;
+    padding-right: 0.85rem;
+  }
+
+  .support-float-label {
+    display: none;
   }
 }
