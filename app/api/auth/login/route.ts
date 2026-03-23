@@ -46,6 +46,6 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
-    redirectTo: safeRedirect ?? (user.role === "ADMIN" ? "/admin" : "/dashboard")
+    redirectTo: safeRedirect ?? (user.role === "ADMIN" ? "/admin" : "/wallet")
   });
 }

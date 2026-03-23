@@ -93,7 +93,7 @@ export function AuthForm({ nextPath }: AuthFormProps) {
         return;
       }
 
-      window.location.href = verifyResult?.redirectTo ?? "/dashboard";
+      window.location.href = verifyResult?.redirectTo ?? "/wallet";
     } catch {
       setError("Wallet sign-in was cancelled or failed.");
       setWalletLoading(false);
@@ -134,7 +134,7 @@ export function AuthForm({ nextPath }: AuthFormProps) {
       return;
     }
 
-    window.location.href = result?.redirectTo ?? "/dashboard";
+    window.location.href = result?.redirectTo ?? "/wallet";
   }
 
   return (

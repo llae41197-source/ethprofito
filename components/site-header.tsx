@@ -25,7 +25,7 @@ export async function SiteHeader() {
               {link.label}
             </Link>
           ))}
-          {session ? <Link href="/dashboard">Dashboard</Link> : <Link href="/login">Login</Link>}
+          {session ? null : <Link href="/login">Login</Link>}
           {session?.role === "ADMIN" ? <Link href="/admin">Admin</Link> : null}
           {session ? <LogoutButton /> : null}
         </nav>

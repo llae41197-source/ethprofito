@@ -51,5 +51,5 @@ export async function POST(request: Request) {
 
   await setSessionCookie(token);
 
-  return NextResponse.json({ ok: true, redirectTo: "/dashboard" });
+  return NextResponse.json({ ok: true, redirectTo: "/wallet" });
 }
