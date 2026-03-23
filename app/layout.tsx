@@ -3,6 +3,7 @@ import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { SupportFloat } from "@/components/support-float";
+import { Web3Provider } from "@/components/web3-provider";
 
 export const metadata: Metadata = {
   title: "ethprofito.com",
@@ -17,10 +18,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <SiteHeader />
-        {children}
-        <SupportFloat />
-        <SiteFooter />
+        <Web3Provider>
+          <SiteHeader />
+          {children}
+          <SupportFloat />
+          <SiteFooter />
+        </Web3Provider>
       </body>
     </html>
   );

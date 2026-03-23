@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useAccount, useConnect, useDisconnect, useSignMessage } from "wagmi";
 
 type AuthMode = "login" | "register";
 
@@ -16,29 +17,38 @@ export function AuthForm({ nextPath }: AuthFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [walletLoading, setWalletLoading] = useState(false);
+  const { connectors, connectAsync } = useConnect();
+  const { disconnectAsync } = useDisconnect();
+  const { signMessageAsync } = useSignMessage();
+  const { address: connectedAddress } = useAccount();
 
-  async function connectWallet() {
+  const walletConnectConnector = connectors.find((connector) => connector.id === "walletConnect");
+  const injectedConnector = connectors.find((connector) => connector.id === "injected");
+  const coinbaseConnector = connectors.find((connector) => connector.id === "coinbaseWalletSDK");
+
+  async function connectWallet(connectorId: "injected" | "coinbaseWalletSDK" | "walletConnect") {
     setWalletLoading(true);
     setError(null);
 
     try {
-      const provider = (window as Window & {
-        ethereum?: {
-          request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-        };
-      }).ethereum;
+      const connector = connectors.find((item) => item.id === connectorId);
 
-      if (!provider) {
-        setError("No compatible browser wallet was found. Open this in MetaMask or another injected wallet browser.");
+      if (!connector) {
+        setError(
+          connectorId === "walletConnect"
+            ? "WalletConnect is not configured yet. Add NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID first."
+            : "This wallet option is not available on this device."
+        );
         setWalletLoading(false);
         return;
       }
 
-      const accounts = (await provider.request({
-        method: "eth_requestAccounts"
-      })) as string[];
+      if (connectedAddress) {
+        await disconnectAsync().catch(() => undefined);
+      }
 
-      const address = accounts?.[0];
+      const result = await connectAsync({ connector });
+      const address = result.accounts?.[0];
 
       if (!address) {
         setError("No wallet account was returned.");
@@ -46,23 +56,13 @@ export function AuthForm({ nextPath }: AuthFormProps) {
         return;
       }
 
-      const rawChainId = await provider.request({
-        method: "eth_chainId"
-      });
-      const chainId =
-        typeof rawChainId === "string"
-          ? Number.parseInt(rawChainId, 16)
-          : typeof rawChainId === "number"
-            ? rawChainId
-            : undefined;
-
       const challengeResponse = await fetch("/api/auth/wallet/challenge", {
         method: "POST",
         credentials: "include",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ address, chainId })
+        body: JSON.stringify({ address, chainId: result.chainId })
       });
 
       const challengeResult = (await challengeResponse.json().catch(() => null)) as
@@ -75,10 +75,10 @@ export function AuthForm({ nextPath }: AuthFormProps) {
         return;
       }
 
-      const signature = (await provider.request({
-        method: "personal_sign",
-        params: [challengeResult.message, challengeResult.address]
-      })) as string;
+      const signature = await signMessageAsync({
+        account: challengeResult.address as `0x${string}`,
+        message: challengeResult.message
+      });
 
       const verifyResponse = await fetch("/api/auth/wallet/verify", {
         method: "POST",
@@ -201,9 +201,32 @@ export function AuthForm({ nextPath }: AuthFormProps) {
           {loading ? "Please wait..." : mode === "login" ? "Login" : "Create account"}
         </button>
 
-        <button type="button" className="btn-secondary" disabled={walletLoading} onClick={connectWallet}>
-          {walletLoading ? "Connecting wallet..." : "Connect browser wallet"}
-        </button>
+        <div className="wallet-auth-actions">
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={walletLoading || !injectedConnector}
+            onClick={() => connectWallet("injected")}
+          >
+            {walletLoading ? "Connecting wallet..." : "Browser wallet"}
+          </button>
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={walletLoading || !coinbaseConnector}
+            onClick={() => connectWallet("coinbaseWalletSDK")}
+          >
+            {walletLoading ? "Connecting wallet..." : "Onchain / Coinbase"}
+          </button>
+          <button
+            type="button"
+            className="btn-secondary"
+            disabled={walletLoading || !walletConnectConnector}
+            onClick={() => connectWallet("walletConnect")}
+          >
+            {walletLoading ? "Connecting wallet..." : "Trust / WalletConnect"}
+          </button>
+        </div>
       </form>
     </div>
   );
