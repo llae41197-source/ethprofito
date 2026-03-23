@@ -33,6 +33,7 @@ export function BinaryOptionsForm({ balances, markets }: BinaryOptionsFormProps)
     const form = new FormData(event.currentTarget);
     const response = await fetch("/api/binary-options", {
       method: "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json"
       },

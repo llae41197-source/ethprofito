@@ -56,13 +56,21 @@ export default async function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {data.balances.map((balance) => (
-                <tr key={balance.asset.symbol}>
-                  <td>{balance.asset.symbol}</td>
-                  <td>{Number(balance.amount).toFixed(4)}</td>
-                  <td className="muted">{Number(balance.lockedAmount).toFixed(4)}</td>
+              {data.balances.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="muted">
+                    No balances yet. Submit a deposit proof or wait for admin credit approval.
+                  </td>
                 </tr>
-              ))}
+              ) : (
+                data.balances.map((balance) => (
+                  <tr key={balance.asset.symbol}>
+                    <td>{balance.asset.symbol}</td>
+                    <td>{Number(balance.amount).toFixed(4)}</td>
+                    <td className="muted">{Number(balance.lockedAmount).toFixed(4)}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </aside>

@@ -68,6 +68,7 @@ export function AdminActions({ users, depositSubmissions, binaryOptions }: Admin
 
     const response = await fetch(url, {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });

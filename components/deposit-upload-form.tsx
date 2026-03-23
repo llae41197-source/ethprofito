@@ -23,7 +23,8 @@ export function DepositUploadForm({ depositAddresses }: DepositUploadFormProps) 
     const formData = new FormData(event.currentTarget);
     const response = await fetch("/api/deposits", {
       method: "POST",
-      body: formData
+      body: formData,
+      credentials: "include"
     });
 
     const result = (await response.json().catch(() => null)) as { error?: string; message?: string } | null;
