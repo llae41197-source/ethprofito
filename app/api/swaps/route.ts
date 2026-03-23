@@ -2,13 +2,79 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUserSession } from "@/lib/session";
 
-const ratesToUsd: Record<string, number> = {
+const fallbackRatesToUsd: Record<string, number> = {
   BTC: 84320,
   ETH: 4180,
   SOL: 162.12,
   USDT: 1,
   XAU: 2488
 };
+
+const coingeckoIds: Partial<Record<string, string>> = {
+  BTC: "bitcoin",
+  ETH: "ethereum",
+  SOL: "solana",
+  USDT: "tether"
+};
+
+async function getUsdRate(symbol: string) {
+  if (symbol === "USDT") {
+    return { price: 1, source: "Fixed USD peg" };
+  }
+
+  const coingeckoId = coingeckoIds[symbol];
+
+  if (coingeckoId) {
+    try {
+      const response = await fetch(
+        `https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd`,
+        {
+          cache: "no-store"
+        }
+      );
+
+      if (response.ok) {
+        const data = (await response.json()) as Record<string, { usd?: number }>;
+        const price = Number(data[coingeckoId]?.usd ?? 0);
+
+        if (price > 0) {
+          return { price, source: "CoinGecko" };
+        }
+      }
+    } catch {
+      // Fall back to configured backup values below.
+    }
+  }
+
+  if (symbol === "XAU" && process.env.ALPHA_VANTAGE_API_KEY) {
+    try {
+      const response = await fetch(
+        `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=XAU&to_currency=USD&apikey=${process.env.ALPHA_VANTAGE_API_KEY}`,
+        {
+          cache: "no-store"
+        }
+      );
+
+      if (response.ok) {
+        const data = (await response.json()) as {
+          "Realtime Currency Exchange Rate"?: Record<string, string>;
+        };
+        const price = Number(
+          data["Realtime Currency Exchange Rate"]?.["5. Exchange Rate"] ?? 0
+        );
+
+        if (price > 0) {
+          return { price, source: "Alpha Vantage" };
+        }
+      }
+    } catch {
+      // Fall back to configured backup values below.
+    }
+  }
+
+  const fallback = fallbackRatesToUsd[symbol];
+  return fallback ? { price: fallback, source: "Fallback" } : null;
+}
 
 export async function POST(request: Request) {
   const session = await requireApiUserSession();
@@ -52,16 +118,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Insufficient balance for swap." }, { status: 400 });
   }
 
-  const fromUsd = ratesToUsd[fromAssetSymbol];
-  const toUsd = ratesToUsd[toAssetSymbol];
+  const [fromQuote, toQuote] = await Promise.all([
+    getUsdRate(fromAssetSymbol),
+    getUsdRate(toAssetSymbol)
+  ]);
 
-  if (!fromUsd || !toUsd) {
+  if (!fromQuote || !toQuote) {
     return NextResponse.json({ error: "Swap pair is not supported." }, { status: 400 });
   }
 
-  const usdValue = fromAmount * fromUsd;
+  const usdValue = fromAmount * fromQuote.price;
   const feeAdjustedUsd = usdValue * 0.99;
-  const toAmount = feeAdjustedUsd / toUsd;
+  const toAmount = feeAdjustedUsd / toQuote.price;
   const rate = toAmount / fromAmount;
 
   await prisma.$transaction(async (tx) => {
@@ -108,7 +176,7 @@ export async function POST(request: Request) {
         toAmount,
         rate,
         status: "COMPLETED",
-        note: "Internal wallet swap with 1% spread."
+        note: `Internal wallet swap with 1% spread using ${fromQuote.source}/${toQuote.source} USD quotes.`
       }
     });
 
@@ -122,11 +190,20 @@ export async function POST(request: Request) {
           toAsset: toAssetSymbol,
           fromAmount,
           toAmount,
-          rate
+          rate,
+          fromUsdPrice: fromQuote.price,
+          toUsdPrice: toQuote.price,
+          sources: {
+            from: fromQuote.source,
+            to: toQuote.source
+          }
         })
       }
     });
   });
 
-  return NextResponse.json({ ok: true, message: `Swap completed: received ${toAmount.toFixed(4)} ${toAssetSymbol}.` });
+  return NextResponse.json({
+    ok: true,
+    message: `Swap completed: received ${toAmount.toFixed(4)} ${toAssetSymbol}.`
+  });
 }
