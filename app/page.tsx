@@ -59,18 +59,6 @@ export default async function HomePage() {
           </table>
         </aside>
       </div>
-
-      <section className="section">
-        <div className="grid-2">
-          <div className="widget-shell">
-            <TradingViewWidget symbol="OANDA:XAUUSD" height={360} />
-          </div>
-          <div className="widget-shell">
-            <TradingViewWidget symbol="NASDAQ:AAPL" height={360} />
-          </div>
-        </div>
-      </section>
-
       <section className="section" style={{ paddingTop: 0 }}>
         <div className="panel partners-panel">
           <p className="partners-title">Cooperation Platform</p>
