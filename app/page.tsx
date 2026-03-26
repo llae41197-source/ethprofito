@@ -6,18 +6,18 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const markets = await getMarketCards();
   const partners = [
-    "BINANCE",
-    "Bitstamp",
-    "coinbase",
-    "Gate.io",
-    "Huobi",
-    "kraken",
-    "KUCOIN",
-    "OKEX",
-    "upbit",
-    "WazirX",
-    "Bitget",
-    "crypto.com"
+    { name: "BINANCE", mark: "B", tone: "gold" },
+    { name: "Bitstamp", mark: "S", tone: "green" },
+    { name: "coinbase", mark: "C", tone: "blue" },
+    { name: "Gate.io", mark: "G", tone: "light" },
+    { name: "Huobi", mark: "H", tone: "navy" },
+    { name: "kraken", mark: "K", tone: "light" },
+    { name: "KUCOIN", mark: "K", tone: "emerald" },
+    { name: "OKEX", mark: "O", tone: "sky" },
+    { name: "upbit", mark: "U", tone: "royal" },
+    { name: "WazirX", mark: "W", tone: "mist" },
+    { name: "Bitget", mark: "B", tone: "teal" },
+    { name: "crypto.com", mark: "C", tone: "azure" }
   ];
 
   return (
@@ -65,8 +65,9 @@ export default async function HomePage() {
           <p className="partners-copy">Trusted by global industry leaders</p>
           <div className="partners-grid">
             {partners.map((partner) => (
-              <div key={partner} className="partner-chip">
-                {partner}
+              <div key={partner.name} className="partner-chip">
+                <span className={`partner-mark partner-mark-${partner.tone}`}>{partner.mark}</span>
+                <span className="partner-name">{partner.name}</span>
               </div>
             ))}
           </div>
