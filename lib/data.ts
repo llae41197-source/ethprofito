@@ -129,11 +129,12 @@ export const adminActions = [
 ] as const;
 
 export const binaryOptionRules = [
-  { durationSeconds: 30, payoutPercent: 30, minimumStake: 300 },
-  { durationSeconds: 60, payoutPercent: 40, minimumStake: 5000 },
-  { durationSeconds: 90, payoutPercent: 50, minimumStake: 20000 },
-  { durationSeconds: 120, payoutPercent: 60, minimumStake: 50000 },
-  { durationSeconds: 300, payoutPercent: 70, minimumStake: 100000 }
+  { durationSeconds: 30, payoutPercent: 20, minimumStake: 250 },
+  { durationSeconds: 60, payoutPercent: 30, minimumStake: 5000 },
+  { durationSeconds: 90, payoutPercent: 40, minimumStake: 20000 },
+  { durationSeconds: 120, payoutPercent: 50, minimumStake: 50000 },
+  { durationSeconds: 180, payoutPercent: 60, minimumStake: 10000 },
+  { durationSeconds: 300, payoutPercent: 70, minimumStake: 300000 }
 ] as const;
 
 export const binaryDurations = binaryOptionRules.map((rule) => rule.durationSeconds) as readonly number[];
