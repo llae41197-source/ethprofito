@@ -714,6 +714,60 @@ select {
   font-size: 0.9rem;
 }
 
+.trade-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: grid;
+  place-items: end center;
+  padding: 1.25rem;
+  background: rgba(2, 10, 18, 0.62);
+  backdrop-filter: blur(6px);
+}
+
+.trade-modal {
+  width: min(100%, 28rem);
+  border-radius: 24px;
+  border: 1px solid rgba(136, 187, 255, 0.16);
+  background: rgba(11, 18, 27, 0.96);
+  box-shadow: 0 22px 60px rgba(2, 10, 18, 0.55);
+  padding: 1.4rem;
+}
+
+.trade-modal-timer,
+.trade-modal-result {
+  margin: 0.4rem 0 1.2rem;
+  text-align: center;
+  font-size: clamp(2.2rem, 8vw, 3rem);
+  font-weight: 700;
+  color: #34d399;
+}
+
+.trade-modal-result-loss {
+  color: #fb7185;
+}
+
+.trade-modal-grid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.trade-modal-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
+}
+
+.trade-modal-row strong {
+  text-align: right;
+}
+
+.trade-modal-button {
+  width: 100%;
+  margin-top: 1.25rem;
+}
+
 @media (max-width: 900px) {
   .hero,
   .grid-3,
@@ -747,5 +801,9 @@ select {
 
   .support-float-label {
     display: none;
+  }
+
+  .trade-modal-backdrop {
+    padding: 0.75rem;
   }
 }

@@ -13,6 +13,10 @@ export default async function TradePage() {
     getUserDashboardSnapshot(session.id),
     getMarketCards()
   ]);
+  const recentSettled = dashboard.binaryOptions.find((option) => {
+    if (option.status === "OPEN" || !option.settledAt) return false;
+    return Date.now() - new Date(option.settledAt).getTime() <= 5 * 60 * 1000;
+  });
 
   return (
     <main className="shell section">
@@ -36,12 +40,31 @@ export default async function TradePage() {
               .map((option) => ({
                 id: option.id,
                 assetSymbol: option.asset.symbol,
+                marketSymbol: option.marketSymbol,
                 direction: option.direction,
                 durationSeconds: option.durationSeconds,
                 payoutPercent: option.payoutPercent,
                 stakeAmount: Number(option.stakeAmount),
+                openingPrice: Number(option.openingPrice),
                 expiresAt: new Date(option.expiresAt).toISOString()
               }))}
+            recentSettled={
+              recentSettled
+                ? {
+                    id: recentSettled.id,
+                    assetSymbol: recentSettled.asset.symbol,
+                    marketSymbol: recentSettled.marketSymbol,
+                    direction: recentSettled.direction,
+                    payoutPercent: recentSettled.payoutPercent,
+                    stakeAmount: Number(recentSettled.stakeAmount),
+                    openingPrice: Number(recentSettled.openingPrice),
+                    closingPrice: recentSettled.closingPrice ? Number(recentSettled.closingPrice) : null,
+                    payoutAmount: recentSettled.payoutAmount ? Number(recentSettled.payoutAmount) : null,
+                    status: recentSettled.status,
+                    settledAt: recentSettled.settledAt ? new Date(recentSettled.settledAt).toISOString() : null
+                  }
+                : null
+            }
           />
         </div>
 
