@@ -29,7 +29,6 @@ export default async function DepositPage() {
               <div className="deposit-code">{item.address}</div>
               <CopyAddressButton address={item.address} />
             </div>
-            <p className="muted">{item.note}</p>
           </article>
         ))}
       </div>
