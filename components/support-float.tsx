@@ -9,7 +9,7 @@ export function SupportFloat() {
       title="Customer service"
     >
       <span className="support-float-icon" aria-hidden="true">
-        TG
+        🎧
       </span>
       <span className="support-float-label">Customer Service</span>
     </a>
