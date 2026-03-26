@@ -2,7 +2,7 @@ export function SupportFloat() {
   return (
     <a
       className="support-float"
-      href="https://t.me/garrrrvh"
+      href="https://t.me/ethprofito"
       target="_blank"
       rel="noreferrer"
       aria-label="Open Telegram customer service"
