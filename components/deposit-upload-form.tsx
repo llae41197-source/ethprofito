@@ -53,7 +53,7 @@ export function DepositUploadForm({ depositAddresses }: DepositUploadFormProps) 
 
         <label className="field">
           <span>Note</span>
-          <textarea name="note" placeholder="Anything the admin should verify" />
+          <textarea name="note" />
         </label>
 
         <button type="submit" className="btn" disabled={pending}>
