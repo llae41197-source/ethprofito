@@ -5,10 +5,70 @@ import { LogoutButton } from "@/components/logout-button";
 export async function SiteHeader() {
   const session = await getOptionalSession();
   const links = [
-    { href: "/", label: "Home" },
-    { href: "/deposit", label: "Deposit" },
-    ...(session ? [{ href: "/wallet", label: "Wallet" }] : []),
-    ...(session ? [{ href: "/trade", label: "Trade" }] : [])
+    {
+      href: "/",
+      label: "Home",
+      tone: "home",
+      icon: (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 11.5L12 5l8 6.5V20h-5.5v-5h-5v5H4z" fill="currentColor" />
+        </svg>
+      )
+    },
+    {
+      href: "/deposit",
+      label: "Deposit",
+      tone: "deposit",
+      icon: (
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M5 7.5A2.5 2.5 0 0 1 7.5 5h9A2.5 2.5 0 0 1 19 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 16.5zm4 4h6m-3-3v6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
+      )
+    },
+    ...(session
+      ? [
+          {
+            href: "/wallet",
+            label: "Wallet",
+            tone: "wallet",
+            icon: (
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M4 8.5A2.5 2.5 0 0 1 6.5 6h10A2.5 2.5 0 0 1 19 8.5V10h1v7a2 2 0 0 1-2 2H6.5A2.5 2.5 0 0 1 4 16.5zM15 13.5h3"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )
+          },
+          {
+            href: "/trade",
+            label: "Trade",
+            tone: "trade",
+            icon: (
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M5 16l4-4 3 3 7-7M14 8h5v5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )
+          }
+        ]
+      : [])
   ];
 
   return (
@@ -29,12 +89,45 @@ export async function SiteHeader() {
         </Link>
         <nav className="nav">
           {links.map((link) => (
-            <Link key={link.href} href={link.href}>
-              {link.label}
+            <Link key={link.href} href={link.href} className={`nav-item nav-item-${link.tone}`}>
+              <span className="nav-item-icon">{link.icon}</span>
+              <span>{link.label}</span>
             </Link>
           ))}
-          {session ? null : <Link href="/login">Login</Link>}
-          {session?.role === "ADMIN" ? <Link href="/admin">Admin</Link> : null}
+          {session ? null : (
+            <Link href="/login" className="nav-item nav-item-login">
+              <span className="nav-item-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path
+                    d="M15 8l4 4-4 4M19 12H9M11 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+              <span>Login</span>
+            </Link>
+          )}
+          {session?.role === "ADMIN" ? (
+            <Link href="/admin" className="nav-item nav-item-admin">
+              <span className="nav-item-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <path
+                    d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7zM9.5 12l1.5 1.5L14.5 10"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+              <span>Admin</span>
+            </Link>
+          ) : null}
           {session ? <LogoutButton /> : null}
         </nav>
       </div>

@@ -111,11 +111,88 @@ select {
 }
 
 .nav {
+  align-items: center;
   color: var(--muted);
 }
 
 .nav a:hover {
   color: var(--text);
+}
+
+.nav-form {
+  display: inline-flex;
+  margin: 0;
+}
+
+.nav-button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(145, 169, 192, 0.14);
+  background: rgba(8, 22, 35, 0.5);
+  color: var(--text);
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.nav-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(145, 169, 192, 0.28);
+  background: rgba(11, 27, 40, 0.78);
+}
+
+.nav-item-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+.nav-item-icon svg {
+  width: 1rem;
+  height: 1rem;
+  display: block;
+}
+
+.nav-item-home {
+  color: #93c5fd;
+}
+
+.nav-item-deposit {
+  color: #34d399;
+}
+
+.nav-item-wallet {
+  color: #fbbf24;
+}
+
+.nav-item-trade {
+  color: #2dd4bf;
+}
+
+.nav-item-login {
+  color: #c4b5fd;
+}
+
+.nav-item-admin {
+  color: #f9a8d4;
+}
+
+.nav-item-logout {
+  color: #fda4af;
+  border-color: rgba(251, 113, 133, 0.2);
+  background: rgba(69, 10, 10, 0.35);
+}
+
+.nav-item-logout:hover {
+  border-color: rgba(251, 113, 133, 0.4);
+  background: rgba(127, 29, 29, 0.42);
 }
 
 .hero {
