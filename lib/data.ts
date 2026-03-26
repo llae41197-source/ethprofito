@@ -2,23 +2,37 @@ export const depositAddresses = [
   {
     chain: "Bitcoin",
     symbol: "BTC",
-    address: "bc1qhywf8l6e47e5myypr3ywu7wn2thh7fldvc0gqf",
+    address: "bc1qwaavpprtsn9emrgtkxcxl08pmerq76xg55ugnt",
     confirmations: "3 network confirmations",
     note: "For BTC deposits only. Do not send wrapped BTC or assets from unsupported networks."
   },
   {
     chain: "Ethereum",
     symbol: "ETH",
-    address: "0x2cA2A89b0242ac1D85453F2259c821Ff37b1e3E3",
+    address: "0x1cdfeea0d2c847d66d6806dfd785fa7d1dee7b65",
     confirmations: "12 block confirmations",
     note: "Use the Ethereum mainnet. ERC-20 support should be reviewed before enabling token crediting."
   },
   {
     chain: "Solana",
     symbol: "SOL",
-    address: "HWgfhJRBX5Ne7xh2PaSy2yVQxZJ1m3LzBiu1zxCUvobw",
+    address: "QdsHGq3MgXyEZy5frQeF335ukq8rvfJhBDy8qKM2kNu",
     confirmations: "32 slot confirmations",
     note: "For native SOL transfers only unless SPL token parsing is implemented."
+  },
+  {
+    chain: "Tether USD",
+    symbol: "USDT",
+    address: "0x1cdfeea0d2c847d66d6806dfd785fa7d1dee7b65",
+    confirmations: "ERC-20 manual review",
+    note: "Send only USDT on the Ethereum network unless another token network is explicitly enabled."
+  },
+  {
+    chain: "USD Coin",
+    symbol: "USDC",
+    address: "0x1cdfeea0d2c847d66d6806dfd785fa7d1dee7b65",
+    confirmations: "ERC-20 manual review",
+    note: "Send only USDC on the Ethereum network unless another token network is explicitly enabled."
   }
 ] as const;
 

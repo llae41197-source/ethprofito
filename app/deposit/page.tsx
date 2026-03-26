@@ -18,9 +18,9 @@ export default async function DepositPage() {
         </div>
       </div>
 
-      <div className="grid-3">
+      <div className="deposit-address-list">
         {data.depositAddresses.map((item) => (
-          <article key={item.symbol} className="panel">
+          <article key={item.symbol} className="panel deposit-address-item">
             <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
               <div>
                 <p className="muted-label">{item.chain}</p>

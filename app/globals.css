@@ -393,6 +393,16 @@ select {
   flex: 1;
 }
 
+.deposit-address-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.deposit-address-item {
+  display: grid;
+  gap: 1rem;
+}
+
 .copy-btn {
   border: 1px solid var(--line);
   border-radius: 16px;
