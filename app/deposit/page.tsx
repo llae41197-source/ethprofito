@@ -21,12 +21,9 @@ export default async function DepositPage() {
       <div className="deposit-address-list">
         {data.depositAddresses.map((item) => (
           <article key={item.symbol} className="panel deposit-address-item">
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
-              <div>
-                <p className="muted-label">{item.chain}</p>
-                <h3 style={{ marginTop: 0 }}>{item.symbol} Deposit</h3>
-              </div>
-              <span className="badge">{item.confirmations}</span>
+            <div>
+              <p className="muted-label">{item.chain}</p>
+              <h3 style={{ marginTop: 0 }}>{item.symbol} Deposit</h3>
             </div>
             <div className="deposit-code-row">
               <div className="deposit-code">{item.address}</div>
