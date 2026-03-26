@@ -1,6 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import { depositAddresses, featuredMarkets, sampleAccounts } from "@/lib/data";
 
+function getCanonicalDepositAddresses() {
+  return depositAddresses.map((item) => ({
+    chain: item.chain,
+    symbol: item.symbol,
+    address: item.address,
+    confirmations: item.chain === "Bitcoin" ? "3 network confirmations" : "Manual review",
+    note: "Upload a transaction screenshot and await admin approval before credit is released."
+  }));
+}
+
 function formatMoney(value: number) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -100,15 +110,14 @@ export async function getUserDashboardSnapshot(userId: string) {
 export async function getDepositPageSnapshot(userId: string) {
   if (!(await hasUsersTable())) {
     return {
-      depositAddresses,
+      depositAddresses: getCanonicalDepositAddresses(),
       submissions: []
     };
   }
 
-  const [addresses, submissions] = await Promise.all([
+  const [, submissions] = await Promise.all([
     prisma.depositAddress.findMany({
-      where: { active: true },
-      orderBy: { assetCode: "asc" }
+      where: { active: true }
     }),
     prisma.depositSubmission.findMany({
       where: { userId },
@@ -119,13 +128,7 @@ export async function getDepositPageSnapshot(userId: string) {
   ]);
 
   return {
-    depositAddresses: addresses.map((item) => ({
-      chain: item.network,
-      symbol: item.assetCode,
-      address: item.address,
-      confirmations: item.network === "Bitcoin" ? "3 network confirmations" : "Manual review",
-      note: "Upload a transaction screenshot and await admin approval before credit is released."
-    })),
+    depositAddresses: getCanonicalDepositAddresses(),
     submissions
   };
 }
@@ -145,7 +148,7 @@ export async function getWalletSnapshot(userId: string) {
     };
   }
 
-  const [balances, depositSubmissions, withdrawalRequests, swapOrders, addresses] = await Promise.all([
+  const [balances, depositSubmissions, withdrawalRequests, swapOrders] = await Promise.all([
     prisma.balance.findMany({
       where: { userId },
       include: { asset: true },
@@ -168,10 +171,6 @@ export async function getWalletSnapshot(userId: string) {
       include: { fromAsset: true, toAsset: true },
       orderBy: { createdAt: "desc" },
       take: 20
-    }),
-    prisma.depositAddress.findMany({
-      where: { active: true },
-      orderBy: { assetCode: "asc" }
     })
   ]);
 
@@ -195,7 +194,7 @@ export async function getWalletSnapshot(userId: string) {
       toAmount: Number(order.toAmount),
       rate: Number(order.rate)
     })),
-    addresses
+    addresses: depositAddresses
   };
 }
 
