@@ -129,7 +129,7 @@ export const adminActions = [
 ] as const;
 
 export const binaryOptionRules = [
-  { durationSeconds: 30, payoutPercent: 20, minimumStake: 250 },
+  { durationSeconds: 30, payoutPercent: 20, minimumStake: 100 },
   { durationSeconds: 60, payoutPercent: 30, minimumStake: 5000 },
   { durationSeconds: 90, payoutPercent: 40, minimumStake: 20000 },
   { durationSeconds: 120, payoutPercent: 50, minimumStake: 50000 },

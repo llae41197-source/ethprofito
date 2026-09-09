@@ -1,12 +1,13 @@
 import { AdminActions } from "@/components/admin-actions";
+import { SupportInbox } from "@/components/support-inbox";
 import { getAdminSnapshot } from "@/lib/queries";
 import { requireAdminSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  await requireAdminSession();
-  const data = await getAdminSnapshot();
+  const session = await requireAdminSession();
+  const data = await getAdminSnapshot(session.id);
 
   return (
     <main className="shell section">
@@ -41,6 +42,7 @@ export default async function AdminPage() {
       </section>
 
       <div className="stack">
+        <SupportInbox conversations={data.supportConversations} currentUserId={data.currentUserId} />
         <AdminActions
           users={data.users}
           depositSubmissions={data.depositSubmissions}

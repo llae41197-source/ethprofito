@@ -200,6 +200,7 @@ export async function getWalletSnapshot(userId: string) {
 
 async function getFallbackAdminSnapshot() {
   return {
+    currentUserId: "",
     users: sampleAccounts.map((account, index) => ({
       id: `sample-${index}`,
       name: account.name,
@@ -213,6 +214,7 @@ async function getFallbackAdminSnapshot() {
     depositSubmissions: [],
     withdrawalRequests: [],
     binaryOptions: [],
+    supportConversations: [],
     totals: {
       totalUsers: sampleAccounts.length,
       restrictedUsers: 1,
@@ -223,7 +225,7 @@ async function getFallbackAdminSnapshot() {
   };
 }
 
-export async function getAdminSnapshot() {
+export async function getAdminSnapshot(currentUserId = "") {
   if (!(await hasUsersTable())) {
     return getFallbackAdminSnapshot();
   }
@@ -238,7 +240,8 @@ export async function getAdminSnapshot() {
     restrictedUsers,
     pendingDeposits,
     openBinaryOptions,
-    pendingWithdrawals
+    pendingWithdrawals,
+    supportConversations
   ] = await Promise.all([
     prisma.user.findMany({
       orderBy: { createdAt: "desc" },
@@ -300,10 +303,20 @@ export async function getAdminSnapshot() {
     prisma.user.count({ where: { isRestricted: true } }),
     prisma.depositSubmission.count({ where: { status: "PENDING" } }),
     prisma.binaryOptionTrade.count({ where: { status: "OPEN" } }),
-    prisma.withdrawalRequest.count({ where: { status: "PENDING" } })
+    prisma.withdrawalRequest.count({ where: { status: "PENDING" } }),
+    prisma.supportConversation.findMany({
+      where: { status: "OPEN" },
+      orderBy: { lastMessageAt: "desc" },
+      take: 50,
+      include: {
+        user: { select: { name: true, email: true } },
+        messages: { orderBy: { createdAt: "asc" }, take: 100 }
+      }
+    })
   ]);
 
   return {
+    currentUserId,
     users: users.map((user) => ({
       ...user,
       balances: user.balances.map((balance) => ({
@@ -328,6 +341,7 @@ export async function getAdminSnapshot() {
       closingPrice: option.closingPrice ? Number(option.closingPrice) : null,
       payoutAmount: option.payoutAmount ? Number(option.payoutAmount) : null
     })),
+    supportConversations,
     totals: {
       totalUsers,
       restrictedUsers,
